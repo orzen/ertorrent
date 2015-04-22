@@ -1,0 +1,103 @@
+-module(ertorrent_torrent_statem).
+-behaviour(gen_statem).
+
+% API
+-export([
+        request_peers/2,
+        user_start/1,
+        user_stop/1,
+        start_link/1,
+    stop/1
+    ]).
+
+% Behaviour functions
+-export([
+         init/1,
+         terminate/3,
+         callback_mode/0
+        ]).
+
+-record(data, {
+          announce_timer_ref::reference(),
+          available_peers::list(),
+          id::atom(),
+          torrent_ref::atom()
+         }).
+
+-define(ANNOUNCE_TIME, 120000).
+
+%% API
+
+request_peers(Statem_ref, Amount) ->
+    gen_statem:cast(Statem_ref, {serve_peers, self(), Amount}).
+
+user_start(Statem_ref) ->
+    gen_statem:cast(Statem_ref, {user_start, self()}).
+
+user_stop(Statem_ref) ->
+    gen_statem:cast(Statem_ref, {user_stop, self()}).
+
+start_link(ID) when is_atom(ID)->
+    gen_statem:start_link({local, ID}, ?MODULE, [], []).
+
+stop(Statem_ref) ->
+    ok.
+
+%% Internal functions
+
+set_announce_timer(Timer_ref) ->
+    case erlang:cancel_timer(Timer_ref) of
+        false ->
+            ok;
+        Time_left ->
+            ok
+    end,
+
+    Torrent_ref ! {announce_timer},
+
+    Ref = erlang:send_after(?ANNOUNCE_TIMER, self(), {torrent_w_tracker_announce_loop}),
+
+    {ok, {announce_timer_ref, Timer_ref}}.
+
+reset_announce_timer() ->
+    ok.
+
+%% States
+
+init_cache(enter, _Oldstate, Data) ->
+    ok.
+init_hashing(enter, _Oldstate, Data) ->
+    ok.
+
+active(enter, _Oldstate, Data) ->
+    {keep_state, Data}.
+active(cast, {serve_peers, Peer_ref, Amount}, Data) ->
+    ok.
+active(cast, {announce_timer, Announce_ref}, Data) ->
+    ok.
+
+inactive(enter, _Oldstate, Data) ->
+    {keep_state, Data}.
+inactive(cast, {serve_peers, Peer_ref, Amount}, Data) ->
+    Peer_ref ! {serve_peers_resp, inactive},
+    ok.
+inactive(cast, {announce_timer, Announce_ref}, Data) ->
+    ok.
+
+%% Behaviour functions
+
+init([{id, ID}, {torrent_ref, Torrent_ref}]) ->
+    {ok, inactive, #date{}}.
+
+terminate(shutdown, State, Data) ->
+    case erlang:cancel_timer(Data#data.announce_timer_ref) of
+        false ->
+            ok;
+        Time_left ->
+            ok
+    end;
+terminate(Reason, State, Data) ->
+    lager:error("torrent_statem terminated with unhandled reason '~w'", [Reason]).
+
+callback_mode() ->
+    state_functions.

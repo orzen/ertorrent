@@ -1,0 +1,55 @@
+{application, ertorrent,
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [
+    % stdlib
+    kernel,
+    stdlib,
+    sasl,
+    inets,
+    os_mon,
+    % upstream
+    % hackey deps
+    crypto,
+    public_key,
+    ssl,
+    % end hackney deps
+    lager, % want the logging to start up first
+    gun,
+    cowboy
+   ]},
+  {mod, {ertorrent_app, []}},
+  {env,[]},
+  {modules, [
+             ertorrent_app,
+             ertorrent_bencode,
+             ertorrent_binary_utils,
+             ertorrent_file_srv,
+             ertorrent_file_sup,
+             ertorrent_file_worker,
+             ertorrent_hash_srv,
+             ertorrent_metainfo,
+             ertorrent_peer_accept,
+             ertorrent_peer_srv,
+             ertorrent_peer_sup,
+             ertorrent_peer_worker,
+             ertorrent_peer_statem,
+             ertorrent_peer_statem_sup,
+             ertorrent_rest_v1_top,
+             ertorrent_settings_srv,
+             ertorrent_sup,
+             ertorrent_torrent_srv,
+             ertorrent_torrent_sup,
+             ertorrent_torrent_worker,
+             ertorrent_tracker_http_dispatcher,
+             ertorrent_tracker_request,
+             ertorrent_tracker_udp,
+             ertorrent_utils
+            ]
+  },
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.
