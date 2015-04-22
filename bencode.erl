@@ -34,7 +34,7 @@ dec_list(Data, Acc) ->
     dec_list(Tail, [Res|Acc]).
 
 dec_dict(<<$e, Tail/binary>>, Acc) ->
-    {{dict, Acc}, Tail};
+    {{dict, lists:reverse(Acc)}, Tail};
 dec_dict(Data, Acc) ->
     {Key, Tail1} = dec(Data),
     {Value, Tail2} = dec(Tail1),
