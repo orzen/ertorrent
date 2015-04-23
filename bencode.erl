@@ -1,10 +1,13 @@
 -module(bencode).
 
--export([decode/1]).
+-export([decode/1, encode/1]).
 
 decode(File) ->
     {ok, Data} = file:read_file(File),
     dec(Data).
+
+encode(Struct) ->
+    iolist_to_binary(enc(Struct)).
 
 dec(<<$d, Tail/binary>>) ->
     dec_dict(Tail, []);
@@ -40,3 +43,20 @@ dec_dict(Data, Acc) ->
     {Value, Tail2} = dec(Tail1),
     H = {Key,Value},
     dec_dict(Tail2, [H|Acc]).
+
+
+enc(Int) when is_integer(Int) ->
+    IntBin = list_to_binary(integer_to_list(Int)),
+    [$i, IntBin, $e];
+enc(Str) when is_list(Str) ->
+    enc(list_to_binary(Str));
+enc(Str) when is_binary(Str) ->
+    IntBin = list_to_binary(integer_to_list(size(Str))),
+    [IntBin, $:, Str];
+enc(Tuple) when is_tuple(Tuple), (element(1, Tuple) /= dict), (element(1, Tuple) /= list) ->
+    {Key, Value} = Tuple,
+    [enc(Key), enc(Value)];
+enc({list, List}) when is_list(List) ->
+    [$l, [enc(Elem) || Elem <- List], $e];
+enc({dict, Dict}) when is_list(Dict)->
+    [$d, [enc(Elem) || Elem <- Dict], $e].
