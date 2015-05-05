@@ -3,7 +3,6 @@
 
 -export([get_data/1]).
 
-%%debian-8.0.0-amd64-netinst.iso.torrent
 get_data(Filename) ->
     {{dict, Total}, _} = bencode:decode(Filename),
     parse_torrent(Total, #torrent{}).
