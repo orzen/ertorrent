@@ -4,10 +4,10 @@
 
 decode(File) ->
     {ok, Data} = file:read_file(File),
-    dec(Data).
+    {ok, dec(Data)}.
 
 encode(Struct) ->
-    iolist_to_binary(enc(Struct)).
+    {ok, iolist_to_binary(enc(Struct))}.
 
 dec(<<$d, Tail/binary>>) ->
     dec_dict(Tail, []);
