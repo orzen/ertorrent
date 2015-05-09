@@ -2,6 +2,10 @@
 
 -export([decode/1, encode/1]).
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
 decode(File) ->
     {ok, Data} = file:read_file(File),
     {ok, dec(Data)}.
@@ -60,3 +64,16 @@ enc({list, List}) when is_list(List) ->
     [$l, [enc(Elem) || Elem <- List], $e];
 enc({dict, Dict}) when is_list(Dict)->
     [$d, [enc(Elem) || Elem <- Dict], $e].
+
+% Tests
+-ifdef(TEST).
+
+test_decode_torrent(File) ->
+	% Derp, read_file needs absolute paths?
+	{ok, _Data} = decode(os:getenv("PWD") ++ "/" ++ File).
+	%?debugFmt("~p", [_Data]).
+
+decode_test() ->
+	test_decode_torrent("src/testdata/debian-8.0.0-mipsel-netinst.iso.torrent").
+
+-endif.
