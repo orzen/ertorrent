@@ -5,9 +5,7 @@ RUN apt-get install --no-install-recommends -y git make vim
 RUN apt-get install --no-install-recommends -y \
 	erlang-base \
 	erlang-eunit \
-	erlang-inets \
-	erlang-os-mon \
-	erlang-ssl
+	rebar
 RUN mkdir -p /home/ertorrent
 RUN groupadd ertorrent && useradd -g ertorrent ertorrent
 RUN chown -R ertorrent:ertorrent /home/ertorrent
