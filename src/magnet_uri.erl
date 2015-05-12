@@ -1,8 +1,8 @@
 -module(magnet_uri).
 
--export([decode/1]).
+-export([parse/1]).
 
-decode(Uri) ->
+parse(Uri) ->
     case string:str(Uri, "magnet:?") == 1 of
         true ->
             Urn = string:substr(Uri, 9),
