@@ -7,7 +7,9 @@ parse(Uri) ->
         true ->
             Urn = string:substr(Uri, 9),
             Urn_list = string:tokens(Urn, "&"),
-            {ok, parse_urn(Urn_list, [])};
+            Parsed = parse_urn(Urn_list, []),
+            Decoded = decode_magnet(Parsed),
+            {ok, Decoded};
         false ->
             {error, "Invalid magnet"}
     end.
@@ -25,3 +27,15 @@ parse_key_val([$=|Tail], Acc) ->
     {lists:reverse(Acc), Tail};
 parse_key_val([H|Tail], Acc) ->
     parse_key_val(Tail, [H|Acc]).
+
+decode_magnet(Magnet) ->
+    decode_magnet(Magnet, []).
+
+decode_magnet([], Acc) ->
+    lists:reverse(Acc);
+decode_magnet([H|Rest], Acc) ->
+    {Key, Value} = H,
+    {ok, Decoded_key} = uri:decode(Key),
+    {ok, Decoded_value} = uri:decode(Value),
+    New_acc = [{Decoded_key, Decoded_value}| Acc],
+    decode_magnet(Rest, New_acc).
