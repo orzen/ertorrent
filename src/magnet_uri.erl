@@ -1,9 +1,15 @@
 -module(magnet_uri).
 
--export([parse/1]).
+-export([is_magnet/1, parse/1]).
+
+is_magnet(Str) ->
+    case string:str(Str, "magnet:?") == 1 of
+        true -> true;
+        false -> false
+    end.
 
 parse(Uri) ->
-    case string:str(Uri, "magnet:?") == 1 of
+    case is_magnet(Uri) of
         true ->
             Urn = string:substr(Uri, 9),
             Urn_list = string:tokens(Urn, "&"),
