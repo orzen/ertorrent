@@ -1,36 +1,34 @@
 -module(metainfo).
 -include("metainfo.hrl").
 
--export([parse_file/1]).
+-export([parse_file/1, parse_magnet/1]).
 
 parse_file(Filename) ->
-    {{dict, Total}, _} = bencode:decode(Filename),
-    parse_torrent(Total, #metainfo{}).
+    {ok, {{dict, Total}, _}} = bencode:decode(Filename),
+    {ok, parse_file(Total, #metainfo{})}.
 
-parse_torrent([], Record) ->
+parse_file([], Record) ->
     Record;
-parse_torrent([{<<"announce">>, Value}|Tail], Record) ->
-    New_record = Record#torrent{announce=Value},
-    parse_torrent(Tail, New_record);
-%% This may recieve a nested list-tuple
-%% depending on torrent distributer.
-parse_torrent([{<<"announce-list">>, Value}|Tail], Record) ->
-    New_record = Record#torrent{announce_list=Value},
-    parse_torrent(Tail, New_record);
-parse_torrent([{<<"comment">>, Value}|Tail], Record) ->
-    New_record = Record#torrent{comment=Value},
-    parse_torrent(Tail, New_record);
-parse_torrent([{<<"creation date">>, Value}|Tail], Record) ->
-    New_record = Record#torrent{creation_date=Value},
-    parse_torrent(Tail, New_record);
-parse_torrent([{<<"httpseeds">>, Value}|Tail], Record) ->
-    New_record = Record#torrent{httpseeds=Value},
-    parse_torrent(Tail, New_record);
-parse_torrent([{<<"info">>, Value}|Tail], Record) ->
+parse_file([{<<"announce">>, Value}|Tail], Record) ->
+    New_record = Record#metainfo{announce=Value},
+    parse_file(Tail, New_record);
+parse_file([{<<"announce-list">>, Value}|Tail], Record) ->
+    New_record = Record#metainfo{announce_list=Value},
+    parse_file(Tail, New_record);
+parse_file([{<<"comment">>, Value}|Tail], Record) ->
+    New_record = Record#metainfo{comment=Value},
+    parse_file(Tail, New_record);
+parse_file([{<<"creation date">>, Value}|Tail], Record) ->
+    New_record = Record#metainfo{creation_date=Value},
+    parse_file(Tail, New_record);
+parse_file([{<<"httpseeds">>, Value}|Tail], Record) ->
+    New_record = Record#metainfo{httpseeds=Value},
+    parse_file(Tail, New_record);
+parse_file([{<<"info">>, Value}|Tail], Record) ->
     {dict, Info_data} = Value,
     Info_record = parse_info(Info_data, #info{}),
-    New_record = Record#torrent{info=Info_record},
-    parse_torrent(Tail, New_record).
+    New_record = Record#metainfo{info=Info_record},
+    parse_file(Tail, New_record).
 
 parse_info([], Record) ->
     Record;
@@ -46,3 +44,41 @@ parse_info([{<<"piece length">>, Value}|Tail], Record) ->
 parse_info([{<<"pieces">>, Value}|Tail], Record) ->
     New_record = Record#info{pieces=Value},
     parse_info(Tail, New_record).
+
+parse_magnet(Uri) ->
+    case utils:is_magnet(Uri) of
+        true ->
+            Urn = string:substr(Uri, 9),
+            Urn_list = string:tokens(Urn, "&"),
+            Parsed = parse_urn(Urn_list, []),
+            Decoded = decode_magnet(Parsed),
+            {ok, Decoded};
+        false ->
+            {error, "Invalid magnet"}
+    end.
+
+parse_urn([], Acc) ->
+    lists:reverse(Acc);
+parse_urn([H|T], Acc) ->
+    {Key, Value} = parse_key_val(H, []),
+    Acc2 = [{Key, Value}|Acc],
+    parse_urn(T, Acc2).
+
+parse_key_val([], Acc) ->
+    {[], Acc};
+parse_key_val([$=|Tail], Acc) ->
+    {lists:reverse(Acc), Tail};
+parse_key_val([H|Tail], Acc) ->
+    parse_key_val(Tail, [H|Acc]).
+
+decode_magnet(Magnet) ->
+    decode_magnet(Magnet, []).
+
+decode_magnet([], Acc) ->
+    lists:reverse(Acc);
+decode_magnet([H|Rest], Acc) ->
+    {Key, Value} = H,
+    {ok, Decoded_key} = uri:decode(Key),
+    {ok, Decoded_value} = uri:decode(Value),
+    New_acc = [{Decoded_key, Decoded_value}| Acc],
+    decode_magnet(Rest, New_acc).
