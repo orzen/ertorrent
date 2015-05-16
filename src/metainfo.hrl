@@ -1,9 +1,9 @@
 -include("info.hrl").
 
-%% File: torrent.hrl
+%% File: metainfo.hrl
 %%
 %%-----------------------------
-%% Data Type: torrent
+%% Data Type: metainfo
 %% where:
 %%     announce:
 %%     announce_list:
@@ -13,7 +13,7 @@
 %%     info:
 %%-----------------------------
 
--record(torrent,
+-record(metainfo,
         {announce,
          announce_list,
          comment,

@@ -3,7 +3,7 @@
 
 -export([get_data/1]).
 
-get_data(Filename) ->
+from_file(Filename) ->
     {{dict, Total}, _} = bencode:decode(Filename),
     parse_torrent(Total, #torrent{}).
 
