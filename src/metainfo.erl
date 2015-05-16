@@ -1,11 +1,11 @@
--module(torrent).
--include("torrent.hrl").
+-module(metainfo).
+-include("metainfo.hrl").
 
--export([get_data/1]).
+-export([parse_file/1]).
 
-from_file(Filename) ->
+parse_file(Filename) ->
     {{dict, Total}, _} = bencode:decode(Filename),
-    parse_torrent(Total, #torrent{}).
+    parse_torrent(Total, #metainfo{}).
 
 parse_torrent([], Record) ->
     Record;
