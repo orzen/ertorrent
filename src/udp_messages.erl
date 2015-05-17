@@ -8,9 +8,10 @@
          parse_scrape_response/1,
          parse_error_response/1]).
 
-new_connect_request(Connection_id,
-                    Action,
-                    Transaction_id) ->
+new_connect_request(Transaction_id) ->
+    Connection_id = 16#41727101980,
+    Action = 0,
+
     Request = <<Connection_id:8/big-signed-integer-unit:8,
                 Action:4/big-signed-integer-unit:8,
                 Transaction_id:4/big-signed-integer-unit:8>>,
