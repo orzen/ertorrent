@@ -10,6 +10,7 @@
 %%     comment:
 %%     creation_date:
 %%     httpseeds:
+%%     info_hash:
 %%     info:
 %%-----------------------------
 
@@ -19,4 +20,5 @@
          comment,
          creation_date,
          httpseeds,
+         info_hash,
          info = #info{}}).
