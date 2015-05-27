@@ -28,11 +28,8 @@ parse_file([{<<"info">>, Value}|Tail], Record) ->
     {dict, Info_data} = Value,
     {ok, Info_bencoded} = bencode:encode(Value),
     Info_record = parse_info(Info_data, #info{}),
-    %20 byte SHA1 as integerlist
-    <<Hash:160/integer>> = crypto:hash(sha, Info_bencoded),
-    %Convert the integerlist to a string with len:40, base:16, type:binary
-    Info_hash = lists:flatten(io_lib:format("~40.16.0b", [Hash])),
-    New_record = Record#metainfo{info_hash=Info_hash, info=Info_record},
+    {ok, Info_encoded} = utils:encode_hash(Info_hash),
+    New_record = Record#metainfo{info_hash=Info_encoded, info=Info_record},
     parse_file(Tail, New_record).
 
 parse_info([], Record) ->
