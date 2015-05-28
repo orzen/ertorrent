@@ -1,6 +1,6 @@
--module(udp_connection).
+-module(udp_tracker_protocol).
 
--export([new/3]).
+-export([new/2]).
 
 new(Tracker_dns, Port) ->
     {ok, Socket} = gen_udp:open(33000, [{active, false}]),

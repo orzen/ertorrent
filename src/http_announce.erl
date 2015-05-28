@@ -24,6 +24,6 @@ do_announce(Metainfo) ->
                             "&event=started",
                             "&compact=1"]),
     ok = inets:start(),
-    {ok, Result} = httpc:request(get, {Request, []}, [], [{sync, true}]),
+    {ok, {{_, 200, _}, _, Body}} = httpc:request(get, {Request, []}, [], [{sync, true}]),
     ok = inets:stop(),
-    Result.
+    Body.

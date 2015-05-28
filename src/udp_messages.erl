@@ -1,6 +1,6 @@
 -module(udp_messages).
 
--export([new_connect_request/3,
+-export([new_connect_request/1,
          parse_connect_response/1,
          new_announce_request/13,
          parse_announce_response/1,
