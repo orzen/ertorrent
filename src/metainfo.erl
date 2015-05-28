@@ -28,7 +28,7 @@ parse_file([{<<"info">>, Value}|Tail], Record) ->
     {dict, Info_data} = Value,
     {ok, Info_bencoded} = bencode:encode(Value),
     Info_record = parse_info(Info_data, #info{}),
-    {ok, Info_encoded} = utils:encode_hash(Info_hash),
+    {ok, Info_encoded} = utils:encode_hash(Info_bencoded),
     New_record = Record#metainfo{info_hash=Info_encoded, info=Info_record},
     parse_file(Tail, New_record).
 

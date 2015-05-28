@@ -13,7 +13,7 @@ format_hash([], Acc) ->
     lists:reverse(Acc);
 format_hash([Msn, Lsn|Tail], Acc) ->
     New_acc = [Lsn, Msn, $%|Acc],
-    format_hash(Tail, Reserved_list, New_acc).
+    format_hash(Tail, New_acc).
 
 is_magnet(Str) ->
     case string:str(Str, "magnet:?") == 1 of
