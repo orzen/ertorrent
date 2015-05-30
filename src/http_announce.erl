@@ -26,4 +26,4 @@ do_announce(Metainfo) ->
     ok = inets:start(),
     {ok, {{_, 200, _}, _, Body}} = httpc:request(get, {Request, []}, [], [{sync, true}]),
     ok = inets:stop(),
-    Body.
+    {ok, Body}.

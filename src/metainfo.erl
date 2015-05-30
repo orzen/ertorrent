@@ -4,7 +4,8 @@
 -export([parse_file/1, parse_magnet/1]).
 
 parse_file(Filename) ->
-    {ok, {{dict, Total}, _}} = bencode:decode(Filename),
+    {ok, Data} = file:read_file(Filename),
+    {ok, {{dict, Total}, _}} = bencode:decode(Data),
     {ok, parse_file(Total, #metainfo{})}.
 
 parse_file([], Record) ->

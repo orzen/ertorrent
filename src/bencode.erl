@@ -6,9 +6,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
-decode(File) ->
-    {ok, Data} = file:read_file(File),
-    {ok, dec(Data)}.
+decode(Data) ->
+    Binary_data = iolist_to_binary(Data),
+    {ok, dec(Binary_data)}.
 
 encode(Struct) ->
     {ok, iolist_to_binary(enc(Struct))}.
