@@ -16,20 +16,59 @@ do_announce(Metainfo) ->
     Peer_id_encoded = edoc_lib:escape_uri(Peer_id),
     %compact=1 is required by BEP 23:
     %http://www.bittorrent.org/beps/bep_0023.html
-    Request = lists:concat([binary_to_list(Announce_address), '?',
-                            "info_hash=", Info_hash,
-                            "&peer_id=", Peer_id_encoded,
-                            "&port=6882",
-                            "&uploaded=0",
-                            "&downloaded=0",
-                            "&left=", Length,
-                            "&event=started",
-                            "&compact=1"]),
+    Basic_request = basic_request(Announce_address,
+                                  Info_hash,
+                                  Peer_id_encoded,
+                                  Length),
     ok = inets:start(),
-    {ok, {{_, 200, _}, _, Body}} = httpc:request(get, {Request, []}, [], [{sync, true}]),
+    {ok, {{_, Code, _}, _, Basic_response}} = httpc:request(get,
+                                                            {Basic_request,
+                                                             []},
+                                                            [],
+                                                            [{sync, true}]),
+    if
+        Code =:= 200 ->
+            erlang:display("BASIC REQUEST"),
+            {ok, {{dict, Resp_decoded}, _}} = bencode:decode(Basic_response),
+            Resp = {ok, basic, parse_response(Resp_decoded, #announce_response{})};
+        Code =:= 400 ->
+            erlang:display("COMPACT REQUEST"),
+            Compact_request = compact_request(Announce_address,
+                                              Info_hash,
+                                              Peer_id_encoded,
+                                              Length),
+            {ok, {{_, 200, _}, _, Compact_response}} = httpc:request(get,
+                                                 {Compact_request,
+                                                  []},
+                                                 [],
+                                                 [{sync, true}]),
+            {ok, {{dict, Resp_decoded}, _}} = bencode:decode(Compact_response),
+            Resp = {ok, compact, parse_response(Resp_decoded, #announce_response{})}
+    end,
+
     ok = inets:stop(),
-    {ok, {{dict, Decoded}, _}} = bencode:decode(Body),
-    parse_response(Decoded, #announce_response{}).
+    Resp.
+
+basic_request(Announce_address, Info_hash, Peer_id_encoded, Length) ->
+    lists:concat([binary_to_list(Announce_address), '?',
+                  "info_hash=", Info_hash,
+                  "&peer_id=", Peer_id_encoded,
+                  "&port=6882",
+                  "&uploaded=0",
+                  "&downloaded=0",
+                  "&left=", Length,
+                  "&event=started"]).
+
+compact_request(Announce_address, Info_hash, Peer_id_encoded, Length) ->
+    lists:concat([binary_to_list(Announce_address), '?',
+                  "info_hash=", Info_hash,
+                  "&peer_id=", Peer_id_encoded,
+                  "&port=6882",
+                  "&uploaded=0",
+                  "&downloaded=0",
+                  "&left=", Length,
+                  "&event=started",
+                  "&compact=1"]).
 
 parse_response([], Record) ->
     {ok, Record};
@@ -49,6 +88,6 @@ parse_response([{<<"peers">>, Value}|Tail], Record) ->
 
 parse_peers(<<>>, Acc) ->
     {ok, Acc};
-parse_peers(<<Ip:4/binary-unit:8, Port:2/binary-unit:8, Tail/binary>>, Acc) ->
+parse_peers(<<Ip:4/big-binary-unit:8, Port:2/big-binary-unit:8, Tail/binary>>, Acc) ->
     Peer = #peer{ip=binary_to_list(Ip), port=binary_to_list(Port)},
     parse_peers(Tail, [Peer|Acc]).
