@@ -23,9 +23,10 @@ do_announce(Metainfo) ->
     ok = inets:start(),
     {ok, {{_, Code, _}, _, Basic_response}} = httpc:request(get,
                                                             {Basic_request,
-                                                             []},
+                                                             [{"Accept", "text/plain"}]},
                                                             [],
-                                                            [{sync, true}]),
+                                                            [{sync, true},
+                                                             {headers_as_is, true}]),
     if
         Code =:= 200 ->
             erlang:display("BASIC REQUEST"),
