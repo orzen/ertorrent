@@ -20,13 +20,8 @@ do_announce(Metainfo) ->
                                   Info_hash,
                                   Peer_id_encoded,
                                   Length),
-    ok = inets:start(),
-    {ok, {{_, Code, _}, _, Basic_response}} = httpc:request(get,
-                                                            {Basic_request,
-                                                             [{"Accept", "text/plain"}]},
-                                                            [],
-                                                            [{sync, true},
-                                                             {headers_as_is, true}]),
+    {ok, Code, Basic_response} = send_request(Basic_request),
+    erlang:display(Basic_request),
     if
         Code =:= 200 ->
             erlang:display("BASIC REQUEST"),
@@ -38,17 +33,29 @@ do_announce(Metainfo) ->
                                               Info_hash,
                                               Peer_id_encoded,
                                               Length),
-            {ok, {{_, 200, _}, _, Compact_response}} = httpc:request(get,
-                                                 {Compact_request,
-                                                  []},
-                                                 [],
-                                                 [{sync, true}]),
+            {ok, Code, Compact_response} = send_request(Compact_request),
             {ok, {{dict, Resp_decoded}, _}} = bencode:decode(Compact_response),
             Resp = {ok, compact, parse_response(Resp_decoded, #announce_response{})}
     end,
 
     ok = inets:stop(),
     Resp.
+
+send_request(Request) ->
+    inets:start(),
+    try {ok, {{_, Code, _}, _, Response}} = httpc:request(get,
+                                                          {Request,
+                                                           [{"Accept",
+                                                             "text/plain"}]},
+                                                          [],
+                                                          [{sync, true},
+                                                           {headers_as_is, true}]),
+        {ok, Code, Response}
+    catch
+        Exception:Reason -> {error, Exception, Reason}
+    after
+        inets:stop()
+    end.
 
 basic_request(Announce_address, Info_hash, Peer_id_encoded, Length) ->
     lists:concat([binary_to_list(Announce_address), '?',
