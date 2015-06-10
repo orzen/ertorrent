@@ -25,25 +25,23 @@ do_announce(Metainfo) ->
     if
         Code =:= 200 ->
             erlang:display("BASIC REQUEST"),
-            {ok, {{dict, Resp_decoded}, _}} = bencode:decode(Basic_response),
-            Resp = {ok, basic, parse_response(Resp_decoded, #announce_response{})};
+            {ok, Response} = parse_response(Basic_response);
         Code =:= 400 ->
             erlang:display("COMPACT REQUEST"),
             Compact_request = compact_request(Announce_address,
                                               Info_hash,
                                               Peer_id_encoded,
                                               Length),
-            {ok, Code, Compact_response} = send_request(Compact_request),
-            {ok, {{dict, Resp_decoded}, _}} = bencode:decode(Compact_response),
-            Resp = {ok, compact, parse_response(Resp_decoded, #announce_response{})}
+            {ok, 200, Compact_response} = send_request(Compact_request),
+            {ok, Response} = parse_response(Compact_response)
     end,
+    Response.
 
-    ok = inets:stop(),
-    Resp.
 
 send_request(Request) ->
     inets:start(),
-    try {ok, {{_, Code, _}, _, Response}} = httpc:request(get,
+    try
+        {ok, {{_, Code, _}, _, Response}} = httpc:request(get,
                                                           {Request,
                                                            [{"Accept",
                                                              "text/plain"}]},
@@ -78,21 +76,33 @@ compact_request(Announce_address, Info_hash, Peer_id_encoded, Length) ->
                   "&event=started",
                   "&compact=1"]).
 
-parse_response([], Record) ->
+parse_response(Response_encoded) ->
+    {ok, Response_decoded} = decode(Response_encoded),
+    parse_decoded_response(Response_decoded, #announce_response{}).
+
+decode(Response) ->
+    try
+        {ok, {{dict, Response_decoded}, _}} = bencode:decode(Response),
+        {ok, Response_decoded}
+    catch
+        Exception:Reason -> {Exception, Reason}
+    end.
+
+parse_decoded_response([], Record) ->
     {ok, Record};
-parse_response([{<<"complete">>, Value}|Tail], Record) ->
+parse_decoded_response([{<<"complete">>, Value}|Tail], Record) ->
     New_record = Record#announce_response{complete=Value},
-    parse_response(Tail, New_record);
-parse_response([{<<"incomplete">>, Value}|Tail], Record) ->
+    parse_decoded_response(Tail, New_record);
+parse_decoded_response([{<<"incomplete">>, Value}|Tail], Record) ->
     New_record = Record#announce_response{incomplete=Value},
-    parse_response(Tail, New_record);
-parse_response([{<<"interval">>, Value}|Tail], Record) ->
+    parse_decoded_response(Tail, New_record);
+parse_decoded_response([{<<"interval">>, Value}|Tail], Record) ->
     New_record = Record#announce_response{interval=Value},
-    parse_response(Tail, New_record);
-parse_response([{<<"peers">>, Value}|Tail], Record) ->
+    parse_decoded_response(Tail, New_record);
+parse_decoded_response([{<<"peers">>, Value}|Tail], Record) ->
     {ok, Peers} = parse_peers(Value, []),
     New_record = Record#announce_response{peers=Peers},
-    parse_response(Tail, New_record).
+    parse_decoded_response(Tail, New_record).
 
 parse_peers(<<>>, Acc) ->
     {ok, Acc};
