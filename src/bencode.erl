@@ -99,16 +99,60 @@ decode_list_test() ->
     {ok, List} = decode(<<"l3:foo3:bare">>),
     ?assert(List =:= {list, [<<"foo">>, <<"bar">>]}).
 
-%Test decoding plain int
+%Test decoding plain integer
 decode_int_test() ->
     erlang:display("Test decode int"),
-    {ok, Int} = decode(<<"i42e">>),
-    ?assert(Int =:= 42).
+    {ok, Integer} = decode(<<"i42e">>),
+    ?assert(Integer =:= 42).
 
 %Test decoding plain string
 decode_string_test() ->
     erlang:display("Test decode string"),
     {ok, String} = decode(<<"3:foo">>),
     ?assert(String =:= <<"foo">>).
+
+%Test encoding a list nested in a dict
+encode_nested_1_test() ->
+    erlang:display("Test encode nested 1"),
+    Dict = {dict,
+            [{<<"key">>, <<"value">>},
+             {<<"foo">>, {list, [<<"bar">>, <<"baz">>]}}]},
+    {ok, String} = encode(Dict),
+    ?assert(String =:= <<"d3:key5:value3:fool3:bar3:bazee">>).
+
+%Test encoding a dict nested in a list
+encode_nested_2_test() ->
+    erlang:display("Test encode nested 2"),
+    List = {list, [{dict, [{<<"foo">>, <<"bar">>}]}]},
+    {ok, String} = encode(List),
+    ?assert(String =:= <<"ld3:foo3:baree">>).
+
+%Test encoding plain dict
+encode_dict_test() ->
+    erlang:display("Test encode dict"),
+    Dict = {dict, [{<<"key">>, <<"value">>}, {<<"foo">>, <<"bar">>}]},
+    {ok, String} = encode(Dict),
+    ?assert(String =:= <<"d3:key5:value3:foo3:bare">>).
+
+%Test encoding plain list
+encode_list_test() ->
+    erlang:display("Test encode list"),
+    List = {list, [<<"foo">>, <<"bar">>]},
+    {ok, String} = encode(List),
+    ?assert(String =:= <<"l3:foo3:bare">>).
+
+%Test encoding plain integer
+encode_int_test() ->
+    erlang:display("Test encode integer"),
+    Integer = 42,
+    {ok, String} = encode(Integer),
+    ?assert(String =:= <<"i42e">>).
+
+%Test encoding plain string
+encode_string_test() ->
+    erlang:display("Test encode string"),
+    Str = "foobar",
+    {ok, String} = encode(Str),
+    ?assert(String =:= <<"6:foobar">>).
 
 -endif.
