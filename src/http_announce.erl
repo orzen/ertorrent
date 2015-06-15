@@ -82,7 +82,7 @@ parse_response(Response_encoded) ->
 
 decode(Response) ->
     try
-        {ok, {{dict, Response_decoded}, _}} = bencode:decode(Response),
+        {ok, {dict, Response_decoded}} = bencode:decode(Response),
         {ok, Response_decoded}
     catch
         Exception:Reason -> {Exception, Reason}

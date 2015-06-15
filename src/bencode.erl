@@ -101,7 +101,7 @@ decode_list_test() ->
 
 %Test decoding plain integer
 decode_int_test() ->
-    erlang:display("Test decode int"),
+    erlang:display("Test decode integer"),
     {ok, Integer} = decode(<<"i42e">>),
     ?assert(Integer =:= 42).
 

@@ -5,7 +5,7 @@
 
 parse_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
-    {ok, {{dict, Total}, _}} = bencode:decode(Data),
+    {ok, {dict, Total}} = bencode:decode(Data),
     {ok, parse_file(Total, #metainfo{})}.
 
 parse_file([], Record) ->
