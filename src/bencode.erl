@@ -8,7 +8,12 @@
 
 decode(Data) ->
     Binary_data = iolist_to_binary(Data),
-    {ok, dec(Binary_data)}.
+    case dec(Binary_data) of
+        {{dict, Value}, _} -> Return = {dict, Value};
+        {{list, Value}, _} -> Return = {list, Value};
+        {Value, _} -> Return = Value
+    end,
+    {ok, Return}.
 
 encode(Struct) ->
     {ok, iolist_to_binary(enc(Struct))}.
@@ -45,7 +50,7 @@ dec_dict(<<$e, Tail/binary>>, Acc) ->
 dec_dict(Data, Acc) ->
     {Key, Tail1} = dec(Data),
     {Value, Tail2} = dec(Tail1),
-    H = {Key,Value},
+    H = {Key, Value},
     dec_dict(Tail2, [H|Acc]).
 
 
@@ -68,12 +73,42 @@ enc({dict, Dict}) when is_list(Dict)->
 % Tests
 -ifdef(TEST).
 
-test_decode_torrent(File) ->
-	% Derp, read_file needs absolute paths?
-	{ok, _Data} = decode(os:getenv("PWD") ++ "/" ++ File).
-	%?debugFmt("~p", [_Data]).
+%Test decoding list nested inside a dict
+decode_nested_1_test() ->
+    erlang:display("Test nested 1"),
+    {ok, Dict} = decode(<<"d3:key5:value3:fool3:bar3:bazee">>),
+    ?assert(Dict =:= {dict,
+                      [{<<"key">>, <<"value">>},
+                       {<<"foo">>, {list, [<<"bar">>, <<"baz">>]}}]}).
 
-decode_test() ->
-	test_decode_torrent("src/testdata/debian-8.0.0-mipsel-netinst.iso.torrent").
+%Test decoding dict nested inside a list
+decode_nested_2_test() ->
+    erlang:display("Test nested 2"),
+    {ok, List} = decode(<<"ld3:foo3:baree">>),
+    ?assert(List =:= {list, [{dict, [{<<"foo">>, <<"bar">>}]}]}).
+
+%Test decoding plain dict
+decode_dict_test() ->
+    erlang:display("Test dict"),
+    {ok, Dict} = decode(<<"d3:key5:value3:foo3:bare">>),
+    ?assert(Dict =:= {dict, [{<<"key">>, <<"value">>}, {<<"foo">>, <<"bar">>}]}).
+
+%Test decoding plain list
+decode_list_test() ->
+    erlang:display("Test list"),
+    {ok, List} = decode(<<"l3:foo3:bare">>),
+    ?assert(List =:= {list, [<<"foo">>, <<"bar">>]}).
+
+%Test decoding plain int
+decode_int_test() ->
+    erlang:display("Test int"),
+    {ok, Int} = decode(<<"i42e">>),
+    ?assert(Int =:= 42).
+
+%Test decoding plain string
+decode_string_test() ->
+    erlang:display("Test string"),
+    {ok, String} = decode(<<"3:foo">>),
+    ?assert(String =:= <<"foo">>).
 
 -endif.
