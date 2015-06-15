@@ -75,7 +75,7 @@ enc({dict, Dict}) when is_list(Dict)->
 
 %Test decoding list nested inside a dict
 decode_nested_1_test() ->
-    erlang:display("Test nested 1"),
+    erlang:display("Test decode nested 1"),
     {ok, Dict} = decode(<<"d3:key5:value3:fool3:bar3:bazee">>),
     ?assert(Dict =:= {dict,
                       [{<<"key">>, <<"value">>},
@@ -83,31 +83,31 @@ decode_nested_1_test() ->
 
 %Test decoding dict nested inside a list
 decode_nested_2_test() ->
-    erlang:display("Test nested 2"),
+    erlang:display("Test decode nested 2"),
     {ok, List} = decode(<<"ld3:foo3:baree">>),
     ?assert(List =:= {list, [{dict, [{<<"foo">>, <<"bar">>}]}]}).
 
 %Test decoding plain dict
 decode_dict_test() ->
-    erlang:display("Test dict"),
+    erlang:display("Test decode dict"),
     {ok, Dict} = decode(<<"d3:key5:value3:foo3:bare">>),
     ?assert(Dict =:= {dict, [{<<"key">>, <<"value">>}, {<<"foo">>, <<"bar">>}]}).
 
 %Test decoding plain list
 decode_list_test() ->
-    erlang:display("Test list"),
+    erlang:display("Test decode list"),
     {ok, List} = decode(<<"l3:foo3:bare">>),
     ?assert(List =:= {list, [<<"foo">>, <<"bar">>]}).
 
 %Test decoding plain int
 decode_int_test() ->
-    erlang:display("Test int"),
+    erlang:display("Test decode int"),
     {ok, Int} = decode(<<"i42e">>),
     ?assert(Int =:= 42).
 
 %Test decoding plain string
 decode_string_test() ->
-    erlang:display("Test string"),
+    erlang:display("Test decode string"),
     {ok, String} = decode(<<"3:foo">>),
     ?assert(String =:= <<"foo">>).
 
