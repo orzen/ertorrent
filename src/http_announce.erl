@@ -6,6 +6,9 @@
 
 -export([do_announce/1]).
 
+%compact=1 is required by BEP 23:
+%http://www.bittorrent.org/beps/bep_0023.html
+
 do_announce(Metainfo) ->
     #metainfo{announce=Announce_address,
               info_hash=Info_hash,
@@ -14,8 +17,6 @@ do_announce(Metainfo) ->
     Peer_id = string:concat("ET-0-0-1", string:chars($ , 12)),
     %Replacing reserved characters
     Peer_id_encoded = edoc_lib:escape_uri(Peer_id),
-    %compact=1 is required by BEP 23:
-    %http://www.bittorrent.org/beps/bep_0023.html
     Basic_request = basic_request(Announce_address,
                                   Info_hash,
                                   Peer_id_encoded,
@@ -100,12 +101,26 @@ parse_decoded_response([{<<"interval">>, Value}|Tail], Record) ->
     New_record = Record#announce_response{interval=Value},
     parse_decoded_response(Tail, New_record);
 parse_decoded_response([{<<"peers">>, Value}|Tail], Record) ->
-    {ok, Peers} = parse_peers(Value, []),
-    New_record = Record#announce_response{peers=Peers},
+    {ok, Peers} = parse_compact_peers_list(Value, []),
+    New_record = Record#announce_response{peers={Peers}},
     parse_decoded_response(Tail, New_record).
 
-parse_peers(<<>>, Acc) ->
+parse_basic_peers_list(<<>>, Acc) ->
     {ok, Acc};
-parse_peers(<<Ip:4/big-binary-unit:8, Port:2/big-integer-unit:8, Tail/binary>>, Acc) ->
-    Peer = #peer{ip=binary_to_list(Ip), port=Port},
-    parse_peers(Tail, [Peer|Acc]).
+parse_basic_peers_list(<<Id:23/big-binary-unit:8,
+                         Ip:259/big-binary-unit:8,
+                         Port:7/big-binary-unit:8,
+                         Tail/binary>>, Acc) ->
+    Peer = #peer{type=basic,
+                 id=bencode:decode(Id),
+                 ip=bencode:decode(Ip),
+                 port=bencode:decode(Port)},
+    parse_basic_peers_list(Tail, [Peer|Acc]).
+
+parse_compact_peers_list(<<>>, Acc) ->
+    {ok, Acc};
+parse_compact_peers_list(<<Ip:4/big-binary-unit:8,
+                           Port:2/big-integer-unit:8,
+                           Tail/binary>>, Acc) ->
+    Peer = #peer{type=compact, ip=binary_to_list(Ip), port=Port},
+    parse_compact_peers_list(Tail, [Peer|Acc]).
