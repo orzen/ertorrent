@@ -106,6 +106,6 @@ parse_decoded_response([{<<"peers">>, Value}|Tail], Record) ->
 
 parse_peers(<<>>, Acc) ->
     {ok, Acc};
-parse_peers(<<Ip:4/big-binary-unit:8, Port:2/big-binary-unit:8, Tail/binary>>, Acc) ->
-    Peer = #peer{ip=binary_to_list(Ip), port=binary_to_list(Port)},
+parse_peers(<<Ip:4/big-binary-unit:8, Port:2/big-integer-unit:8, Tail/binary>>, Acc) ->
+    Peer = #peer{ip=binary_to_list(Ip), port=Port},
     parse_peers(Tail, [Peer|Acc]).
