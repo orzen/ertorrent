@@ -49,16 +49,11 @@ parse_info([{<<"pieces">>, Value}|Tail], Record) ->
     parse_info(Tail, New_record).
 
 parse_magnet(Uri) ->
-    case utils:is_magnet(Uri) of
-        true ->
-            Urn = string:substr(Uri, 9),
-            Urn_list = string:tokens(Urn, "&"),
-            Parsed = parse_urn(Urn_list, []),
-            Decoded = decode_magnet(Parsed),
-            {ok, Decoded};
-        false ->
-            {error, "Invalid magnet"}
-    end.
+    Urn = string:substr(Uri, 9),
+    Urn_list = string:tokens(Urn, "&"),
+    Parsed = parse_urn(Urn_list, []),
+    Decoded = decode_magnet(Parsed),
+    {ok, Decoded}.
 
 parse_urn([], Acc) ->
     lists:reverse(Acc);
