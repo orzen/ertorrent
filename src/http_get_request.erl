@@ -85,7 +85,7 @@ form_request(Announce_address, Info_hash, Peer_id_encoded, Port, Uploaded, Downl
                                  "&peer_id=", Peer_id_encoded,
                                  "&port=", Port,
                                  "&uploaded=", Uploaded,
-                                 "&downloaded=", Downloaded
+                                 "&downloaded=", Downloaded,
                                  "&left=", Length,
                                  "&event=", Event]),
     case Compact of
