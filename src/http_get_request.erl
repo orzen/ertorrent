@@ -11,7 +11,7 @@
 %%%%%%---------------------------------------------------------------------
 %%%%%% Exports
 %%%%%%---------------------------------------------------------------------
-%%%%%% send(Metainfo)
+%%%%%% send(Metainfo, Port, Uploaded, Downloaded, Event)
 %%%%%%   Returns the response of a performed GET request with the given
 %%%%%%   metainfo.
 %%%%%%---------------------------------------------------------------------
@@ -21,7 +21,7 @@
 -include("announce_response.hrl").
 -include("peer.hrl").
 
--export([send/1]).
+-export([send/5]).
 
 send(Metainfo, Port, Uploaded, Downloaded, Event) ->
     #metainfo{announce=Announce_address,
