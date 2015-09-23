@@ -20,7 +20,7 @@ parse_length_prefixed_value(Length, Bitstring) ->
     {ok, {Value, Rest}}.
 
 parse_message(Bytestring) ->
-    {ok, Message} = parse_message(Bytestring, []);
+    {ok, Message} = parse_message(Bytestring, []).
 parse_message(<<>>, Acc) ->
     {ok, Acc};
 parse_message(<<Length:32/big, Rest/big>>) ->
