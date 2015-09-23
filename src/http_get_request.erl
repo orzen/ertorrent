@@ -45,20 +45,20 @@ send(Metainfo, Port, Uploaded, Downloaded, Event) ->
     if
         Code =:= 200 ->
             erlang:display("BASIC REQUEST"),
-            {ok, Response} = parse_response(Basic_response);
+            {ok, Response} = parse_basic_response(Basic_response);
         Code =:= 400 ->
             erlang:display("COMPACT REQUEST"),
-            Compact_request = compact_request(Announce_address,
-                                              Info_hash,
-                                              Peer_id_encoded,
-                                              Port,
-                                              Uploaded,
-                                              Downloaded,
-                                              Length,
-                                              Event,
-                                              true),
+            Compact_request = form_request(Announce_address,
+                                           Info_hash,
+                                           Peer_id_encoded,
+                                           Port,
+                                           Uploaded,
+                                           Downloaded,
+                                           Length,
+                                           Event,
+                                           true),
             {ok, 200, Compact_response} = send_request(Compact_request),
-            {ok, Response} = parse_response(Compact_response)
+            {ok, Response} = parse_compact_response(Compact_response)
     end,
     Response.
 
@@ -95,12 +95,7 @@ form_request(Announce_address, Info_hash, Peer_id_encoded, Port, Uploaded, Downl
             Basic_request
     end.
 
-
-parse_response(Response_encoded) ->
-    {ok, Response_decoded} = decode(Response_encoded),
-    parse_decoded_response(Response_decoded, #announce_response{}).
-
-decode(Response) ->
+decode_response(Response) ->
     try
         {ok, {dict, Response_decoded}} = bencode:decode(Response),
         {ok, Response_decoded}
@@ -108,21 +103,25 @@ decode(Response) ->
         Exception:Reason -> {Exception, Reason}
     end.
 
-parse_decoded_response([], Record) ->
+parse_basic_response(Response_encoded) ->
+    {ok, Response_decoded} = decode_response(Response_encoded),
+    parse_decoded_basic_response(Response_decoded, #announce_response{}).
+
+parse_decoded_basic_response([], Record) ->
     {ok, Record};
-parse_decoded_response([{<<"complete">>, Value}|Tail], Record) ->
+parse_decoded_basic_response([{<<"complete">>, Value}|Tail], Record) ->
     New_record = Record#announce_response{complete=Value},
-    parse_decoded_response(Tail, New_record);
-parse_decoded_response([{<<"incomplete">>, Value}|Tail], Record) ->
+    parse_decoded_basic_response(Tail, New_record);
+parse_decoded_basic_response([{<<"incomplete">>, Value}|Tail], Record) ->
     New_record = Record#announce_response{incomplete=Value},
-    parse_decoded_response(Tail, New_record);
-parse_decoded_response([{<<"interval">>, Value}|Tail], Record) ->
+    parse_decoded_basic_response(Tail, New_record);
+parse_decoded_basic_response([{<<"interval">>, Value}|Tail], Record) ->
     New_record = Record#announce_response{interval=Value},
-    parse_decoded_response(Tail, New_record);
-parse_decoded_response([{<<"peers">>, Value}|Tail], Record) ->
-    {ok, Peers} = parse_compact_peers_list(Value, []),
+    parse_decoded_basic_response(Tail, New_record);
+parse_decoded_basic_response([{<<"peers">>, Value}|Tail], Record) ->
+    {ok, Peers} = parse_basic_peers_list(Value, []),
     New_record = Record#announce_response{peers={Peers}},
-    parse_decoded_response(Tail, New_record).
+    parse_decoded_basic_response(Tail, New_record).
 
 parse_basic_peers_list(<<>>, Acc) ->
     {ok, Acc};
@@ -135,6 +134,26 @@ parse_basic_peers_list(<<Id:23/big-binary-unit:8,
                  ip=bencode:decode(Ip),
                  port=bencode:decode(Port)},
     parse_basic_peers_list(Tail, [Peer|Acc]).
+
+parse_compact_response(Response_encoded) ->
+    {ok, Response_decoded} = decode_response(Response_encoded),
+    parse_decoded_compact_response(Response_decoded, #announce_response{}).
+
+parse_decoded_compact_response([], Record) ->
+    {ok, Record};
+parse_decoded_compact_response([{<<"complete">>, Value}|Tail], Record) ->
+    New_record = Record#announce_response{complete=Value},
+    parse_decoded_compact_response(Tail, New_record);
+parse_decoded_compact_response([{<<"incomplete">>, Value}|Tail], Record) ->
+    New_record = Record#announce_response{incomplete=Value},
+parse_decoded_compact_response(Tail, New_record);
+parse_decoded_compact_response([{<<"interval">>, Value}|Tail], Record) ->
+    New_record = Record#announce_response{interval=Value},
+    parse_decoded_compact_response(Tail, New_record);
+parse_decoded_compact_response([{<<"peers">>, Value}|Tail], Record) ->
+    {ok, Peers} = parse_compact_peers_list(Value, []),
+    New_record = Record#announce_response{peers={Peers}},
+    parse_decoded_compact_response(Tail, New_record).
 
 parse_compact_peers_list(<<>>, Acc) ->
     {ok, Acc};
