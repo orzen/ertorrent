@@ -1,6 +1,5 @@
--module(peer_protocol_message_id).
-
-%%% Message IDs
+%% File: peer_protocol_message_id.hrl
+% Message IDs
 -define(CHOKE, 0).
 -define(UNCHOKE, 1).
 -define(INTERESTED, 2).
