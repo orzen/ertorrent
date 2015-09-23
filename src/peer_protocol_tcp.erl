@@ -15,6 +15,10 @@
 
 -include("peer_protocol_message_id.hrl").
 
+parse_length_prefixed_value(Length, Bitstring) ->
+    <<Value:Length/big-integer-unit:8, Rest>> = Bitstring,
+    {ok, {Value, Rest}}.
+
 parse_message(Bytestring) ->
     {ok, Message} = parse_message(Bytestring, []);
 parse_message(<<>>, Acc) ->
