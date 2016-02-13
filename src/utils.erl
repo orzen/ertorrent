@@ -2,12 +2,12 @@
 
 -export([is_magnet/1, encode_hash/1]).
 
-read_term_from_file(Filename) ->
-    {ok, Data} = file:read_file(Filename),
-    {ok, binary_to_term(Data)}.
+%read_term_from_file(Filename) ->
+%    {ok, Data} = file:read_file(Filename),
+%    {ok, binary_to_term(Data)}.
 
-write_term_to_file(Filename, Data) ->
-    file:write_file(Filename, term_to_binary(Data)).
+%write_term_to_file(Filename, Data) ->
+%    file:write_file(Filename, term_to_binary(Data)).
 
 format_hash([], Acc) ->
     lists:reverse(Acc);

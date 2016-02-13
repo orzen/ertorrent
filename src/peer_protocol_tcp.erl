@@ -15,20 +15,20 @@
 
 -include("peer_protocol_message_id.hrl").
 
-parse_length_prefixed_value(Length, Bitstring) ->
-    <<Value:Length/big-integer-unit:8, Rest>> = Bitstring,
-    {ok, {Value, Rest}}.
-
-parse_message(Bytestring) ->
-    {ok, Message} = parse_message(Bytestring, []).
-parse_message(<<>>, Acc) ->
-    {ok, lists:reverse(Acc)};
-parse_message(<<Length:32/big, Rest/big>>, Acc) ->
-    case Length =:= 0 of
-        true -> [0];
-        false -> {ok, {Value, New_rest}} = parse_length_prefixed_value(Length, Rest),
-                 parse_message(New_rest, [Value|Acc])
-    end.
+%parse_length_prefixed_value(Length, Bitstring) ->
+%    <<Value:Length/big-integer-unit:8, Rest>> = Bitstring,
+%    {ok, {Value, Rest}}.
+%
+%parse_message(Bytestring) ->
+%    {ok, Message} = parse_message(Bytestring, []).
+%parse_message(<<>>, Acc) ->
+%    {ok, lists:reverse(Acc)};
+%parse_message(<<Length:32/big, Rest/big>>, Acc) ->
+%    case Length =:= 0 of
+%        true -> [0];
+%        false -> {ok, {Value, New_rest}} = parse_length_prefixed_value(Length, Rest),
+%                 parse_message(New_rest, [Value|Acc])
+%    end.
 
 msg_handshake(Info_hash, Peer_id) ->
     {ok, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160, Peer_id:160>>}.
