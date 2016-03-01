@@ -1,4 +1,6 @@
 FROM debian:jessie
+EXPOSE 80
+EXPOSE 6969
 RUN apt-get update
 RUN apt-get install --no-install-recommends -y git make build-essential gcc libc6-dev zlib1g-dev libowfat-dev
 
