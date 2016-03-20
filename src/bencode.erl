@@ -1,4 +1,4 @@
--module(bencode_alt).
+-module(bencode).
 
 -export([decode_file/1,
          decode/1,
