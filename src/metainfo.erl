@@ -21,10 +21,10 @@ get_value(Key, Metainfo) ->
     end.
 
 get_info_value(Key, Metainfo) ->
-    case get_value(<<"info">>, Metainfo) of
-        {_, {dict, Info_entry}} ->
-            get_value(Key, Info_entry);
-        {error, no_match} ->
+    case lists:keyfind(<<"info">>, 1, Metainfo) of
+        {_, Value} ->
+            get_value(Key, Value);
+        false ->
             {error, no_info_entry}
     end.
 
