@@ -22,6 +22,9 @@ encode_hash(Info_bencoded) ->
     Info_hash = lists:flatten(io_lib:format("~40.16.0b", [Hash])),
     % Percent-formatting
     Percent_format = format_hash(Info_hash, []),
+    % Upper case
+    Upper_format = string:to_upper(Percent_format),
+    {ok, Upper_format}.
 
 is_magnet(Str) ->
     case string:str(Str, "magnet:?") == 1 of
