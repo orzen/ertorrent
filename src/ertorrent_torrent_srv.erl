@@ -1,23 +1,21 @@
 %%%-------------------------------------------------------------------
-%%% @author Martin & Eric <erlware-dev@googlegroups.com>
-%%% [http://www.erlware.org]
-%%% @copyright 2008-2010 Erlware
-%%% @doc RPC over TCP server. This module defines a server process that
-%%% listens for incoming TCP connections and allows the user to
-%%% execute RPC commands via that TCP stream.
+%%% @todo read up on edoc
+%%% @doc torrent_gen, this is the interface to interact with the
+%%% torrents.
 %%% @end
 %%%-------------------------------------------------------------------
 
--module(torrent_gen).
+-module(ertorrent_torrent_srv).
 
 -behaviour(gen_server).
 
 -define(SERVER, ?MODULE).
+-define(TORRENTS_FILENAME, "TEST_FILE").
 
--export([start/0,
-         stop/1]).
-
--export([start_link/0]).
+-export([start_link/1,
+         stop/0,
+         add/1,
+         list/1]).
 
 -export([init/1,
          handle_call/3,
@@ -30,69 +28,104 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--record(state, {metainfo,
-                socket}).
+-record(state, {port, supervisor, torrents=[]}).
+
+
+add(Metainfo) ->
+    gen_server:call(?MODULE, {add, Metainfo}).
+
+list(Pid) ->
+    gen_server:call(Pid, {list}).
+
+
+print_list([]) ->
+    true;
+print_list([H|T]) ->
+    {Hash, _} = H,
+    io:format("~p~n", [Hash]),
+    print_list(T).
 
 %%% Standard client API
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+% Args = [Port]
+start_link(Args) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, []).
 
-start() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
-
-stop(Pid) ->
-    gen_server:call(Pid, terminate).
-
-call(ServerRef, Request) ->
-    %term().
-    ok.
-
-multi_call(Name, Request) ->
-    %{Replies, BadNodes}
-    ok.
-
-cast(ServerRef, Request) ->
-    ok.
-
-abcast(Name, Request) ->
-    abcast.
+stop() ->
+    io:format("Stopping: ~p...~n", [?MODULE]),
+    gen_server:cast(?MODULE, stop).
 
 %%% Callback module
-init([]) ->
-    {ok, #state{}}.
-
-terminate(_Reason, _State) ->
-    {ok}.
+init([Port]) ->
+    case filelib:is_file(?TORRENTS_FILENAME) of
+        true ->
+            {ok, Torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),
+            lists:foreach(
+                fun({Info_hash, Metainfo}) ->
+                    supervisor:start_child(ertorrent_torrent_sup,
+                                           [list_to_atom(Info_hash),
+                                            [Info_hash, Metainfo,
+                                             Port]])
+                end,
+                Torrents);
+        false ->
+            Torrents = []
+    end,
+    {ok, #state{port=Port, torrents=Torrents}}.
 
 %% Synchronous
-handle_call({init}, From, State) ->
+handle_call({start}, _From, _State) ->
     io:format("~p starting~n",[?MODULE]),
     {ok};
-handle_call({start}, From, State) ->
-    io:format("~p starting~n",[?MODULE]),
+handle_call({add, Metainfo}, _From, State) ->
+    Name = metainfo:get_info_value(<<"name">>, Metainfo),
+    io:format("~p: adding torrent '~p'~n",[?MODULE, Name]),
+
+    % Creating info hash
+    {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
+    {ok, Info_encoded} = bencode:encode(Info),
+    {ok, Info_hash} = utils:encode_hash(Info_encoded),
+
+    Torrent = {Info_hash, Metainfo},
+    Current_torrents = State#state.torrents,
+    New_state = State#state{torrents = [Torrent|Current_torrents]},
+
+    utils:write_term_to_file(?TORRENTS_FILENAME, New_state#state.torrents),
+
+    Atom_hash = list_to_atom(Info_hash),
+    Ret = supervisor:start_child(ertorrent_torrent_sup, [Atom_hash, [Info_hash, Metainfo, New_state#state.port]]),
+
+    io:format("~p: post add, ret '~p'~n", [?MODULE, Ret]),
+
+    {reply, Info_hash, New_state};
+
+handle_call({remove}, _From, _State) ->
+    io:format("~p remove~n",[?MODULE]),
     {ok};
-handle_call({stop}, From, State) ->
-    io:format("~p stopping~n",[?MODULE]),
-    {ok};
-handle_call(terminate, _From, State) ->
-    {stop, normal, ok, State}.
+handle_call({list}, _From, State) ->
+    io:format("~p list~n",[?MODULE]),
+
+    Torrents = State#state.torrents,
+
+    print_list(Torrents),
+
+    {reply, ok, State}.
 
 %% Asynchronous
-handle_cast(Request, State) ->
-    {ok}.
+handle_cast(stop, State) ->
+    {stop, normal, State}.
 
 %% Do work here
-handle_info(Info, State) ->
-    #state{socket=Socket} = State,
-    %case gen_tcp:recv(Socket, 0) of
-    %    {error, closed} ->
-    %        {ok, list_to_binary(Bs)};
-    %    {ok, Packet} ->
-    %        io:format("recv: ~w\n", [Packet])
-    %end.
+handle_info({'EXIT', _ParentPid, shutdown}, State) ->
+    {stop, shutdown, State};
+handle_info(_Info, _State) ->
     ok.
 
-code_change(OldVsn, State, Extra) ->
+terminate(Reason, _State) ->
+    io:format("~p: going down, Reason: ~p~n", [?MODULE, Reason]),
+    error_logger:info_msg("~p: terminating, reason: ~p~n", [?MODULE, Reason]),
+    ok.
+
+code_change(_OldVsn, _State, _Extra) ->
     {ok}.
 
 
