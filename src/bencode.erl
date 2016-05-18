@@ -107,10 +107,10 @@ parse_int(<<$e, Tail/binary>>, Acc) ->
 parse_int(<<$:, Tail/binary>>, Acc) ->
     {Acc, Tail};
 parse_int(<<Ascii_nbr/integer, Tail/binary>>, Acc) ->
-    Length_part = Ascii_nbr-$0,
-    case Length_part >= 0 andalso Length_part =< 9 of
+    Integer_part = Ascii_nbr-$0,
+    case Integer_part >= 0 andalso Integer_part =< 9 of
         true ->
-            parse_int(Tail, Acc * 10  + Length_part);
+            parse_int(Tail, Acc * 10  + Integer_part);
         false ->
             {error, "failed to parse"}
     end.
