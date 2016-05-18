@@ -1,6 +1,9 @@
 -module(utils).
 
--export([is_magnet/1, encode_hash/1]).
+-export([read_term_from_file/1,
+         write_term_to_file/2,
+         is_magnet/1,
+         encode_hash/1]).
 
 read_term_from_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
