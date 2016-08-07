@@ -2,3 +2,4 @@
 ebin/
 .rebar/
 .eunit/
+.*.sw?
