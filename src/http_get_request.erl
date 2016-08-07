@@ -28,9 +28,7 @@ send(Metainfo, Port, Uploaded, Downloaded, Event) ->
               info_hash=Info_hash,
               info=Info} = Metainfo,
     #info{length=Length} = Info,
-    Peer_id = string:concat("ET-0-0-1", string:chars($ , 12)),
-    %Replacing reserved characters
-    Peer_id_encoded = edoc_lib:escape_uri(Peer_id),
+    Peer_id_encoded = edoc_lib:escape_uri(version:version(peer_id)),
     Basic_request = form_request(Announce_address,
                                  Info_hash,
                                  Peer_id_encoded,
