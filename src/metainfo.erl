@@ -1,17 +1,9 @@
 -module(metainfo).
 
--export([read_file/1,
-         split_pieces/2,
+-export([split_pieces/2,
          get_value/2,
          get_info_value/2,
          parse_magnet/1]).
-
--import(lists, [map/2]).
-
-read_file(Filename) ->
-    {ok, Data} = file:read_file(Filename),
-    {ok, {dict, Total}} = bencode:decode(Data),
-    {ok, Total}.
 
 split_pieces(<<>>, Acc) ->
     {ok, lists:reverse(Acc)};
