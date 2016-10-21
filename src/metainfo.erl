@@ -1,6 +1,7 @@
 -module(metainfo).
 
 -export([read_file/1,
+         split_pieces/2,
          get_value/2,
          get_info_value/2,
          parse_magnet/1]).
@@ -11,6 +12,12 @@ read_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
     {ok, {dict, Total}} = bencode:decode(Data),
     {ok, Total}.
+
+split_pieces(<<>>, Acc) ->
+    {ok, lists:reverse(Acc)};
+split_pieces(<<Piece:160/integer, Rest/binary>>, Acc) ->
+    [Hex] = io_lib:format("~40.16.0b", [Piece]),
+    split_pieces(Rest, [Hex | Acc]).
 
 get_value(Key, Metainfo) ->
     case lists:keyfind(Key, 1, Metainfo) of
