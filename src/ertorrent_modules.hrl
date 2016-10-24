@@ -1,0 +1,15 @@
+-define(ALGO, ertorrent_algo_rarest_first).
+-define(BENCODE, ertorrent_bencode).
+-define(BINARY, ertorrent_binary_utils).
+-define(FILE_SRV, ertorrent_file_srv).
+-define(HASH_SRV, ertorrent_hash_srv).
+-define(METAINFO, ertorrent_metainfo).
+-define(SETTINGS_SRV, ertorrent_settings_srv).
+-define(TRACKER, ertorrent_tracker_http_dispatcher).
+-define(TRACKER_UDP, ertorrent_tracker_udp).
+-define(TORRENT_SRV, ertorrent_torrent_worker).
+-define(TORRENT_WORKER, ertorrent_torrent_worker).
+-define(TORRENT_WORKER_STATEM, ertorrent_torrent_worker_statem).
+-define(PEER_SRV, ertorrent_peer_srv).
+-define(PEER_TCP_PROTO, ertorrent_peer_tcp_protocol).
+-define(UTILS, ertorrent_utils).

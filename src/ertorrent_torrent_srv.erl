@@ -9,13 +9,10 @@
 
 -behaviour(gen_server).
 
--define(SERVER, ?MODULE).
--define(TORRENTS_FILENAME, "TEST_FILE").
-
--export([start_link/1,
+-export([start_link/0,
          stop/0,
-         add/1,
-         list/1]).
+         add/2,
+         member_by_info_hash/1]).
 
 -export([init/1,
          handle_call/3,
@@ -24,101 +21,135 @@
          terminate/2,
          code_change/3]).
 
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
--endif.
+-include("ertorrent_log.hrl").
 
--record(state, {port, supervisor, torrents=[]}).
+-define(BENCODE, ertorrent_bencode).
+-define(ERTORRENT_META_FILE, "TEST_FILE").
+-define(METAINFO, ertorrent_metainfo).
+-define(TORRENT_SUP, ertorrent_torrent_sup).
+-define(UTILS, ertorrent_utils).
 
+-record(state, {torrents=[],
+                torrent_sup,
+                torrent_workers=[]}).
 
-add(Metainfo) ->
-    gen_server:call(?MODULE, {add, Metainfo}).
+%%% Client API
 
-list(Pid) ->
-    gen_server:call(Pid, {list}).
+add(Metainfo, Start_when_ready) ->
+    gen_server:call(?MODULE, {torrent_s_add_torrent, Metainfo, Start_when_ready}).
 
+member_by_info_hash(Info_hash) ->
+    gen_server:call(?MODULE, {torrent_s_member_info_hash, Info_hash}).
 
-print_list([]) ->
-    true;
-print_list([H|T]) ->
-    {Hash, _} = H,
-    io:format("~p~n", [Hash]),
-    print_list(T).
-
-%%% Standard client API
-% Args = [Port]
-start_link(Args) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
     gen_server:cast(?MODULE, stop).
 
-%%% Callback module
-init([Port]) ->
-    case filelib:is_file(?TORRENTS_FILENAME) of
-        true ->
-            {ok, Torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),
-            lists:foreach(
-                fun({Info_hash, Metainfo}) ->
-                    supervisor:start_child(ertorrent_torrent_sup,
-                                           [list_to_atom(Info_hash),
-                                            [Info_hash, Metainfo,
-                                             Port]])
-                end,
-                Torrents);
-        false ->
-            Torrents = []
+%%% Internal functions
+
+spawn_workers_from_cache(Torrents) ->
+    Foldl = fun({Info_hash, Metainfo}, Acc) ->
+                ID = list_to_atom(Info_hash),
+                ?TORRENT_SUP:start_child(ID, [Info_hash, Metainfo]),
+                [ID| Acc]
+            end,
+    lists:foldl(Foldl, [], Torrents).
+
+%% Callback functions
+init(_Args) ->
+    case file:read_file(?ERTORRENT_META_FILE) of
+        {ok, Stored_torrent_meta} ->
+            Torrents = erlang:binary_to_term(Stored_torrent_meta),
+
+            Torrent_workers = spawn_workers_from_cache(Torrents);
+        {error, enoent} ->
+            Torrents = [],
+            Torrent_workers = [];
+        {error, Reason} ->
+            lager:warning("unhandled error reason when reading stored torrent meta: '~p'", [Reason]),
+            Torrents = [],
+            Torrent_workers = []
     end,
-    {ok, #state{port=Port, torrents=Torrents}}.
 
-%% Synchronous
-handle_call({start}, _From, _State) ->
-    io:format("~p starting~n",[?MODULE]),
-    {ok};
-handle_call({add, Metainfo}, _From, State) ->
-    Name = metainfo:get_info_value(<<"name">>, Metainfo),
-    io:format("~p: adding torrent '~p'~n",[?MODULE, Name]),
+    {ok, #state{torrents=Torrents,
+                torrent_sup=?TORRENT_SUP,
+                torrent_workers=Torrent_workers}, hibernate}.
 
+handle_call({torrent_srv_member_info_hash, Info_hash}, _From, State) ->
+    Member = lists:keymember(Info_hash, 1, State),
+    {reply, Member, State};
+
+handle_call({torrent_s_add_torrent, Metainfo, Start_when_ready}, _From, State) ->
     % Creating info hash
-    {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
-    {ok, Info_encoded} = bencode:encode(Info),
-    {ok, Info_hash} = utils:encode_hash(Info_encoded),
+    {ok, Info} = ?METAINFO:get_value(<<"info">>, Metainfo),
+    {ok, Info_encoded} = ?BENCODE:encode(Info),
+    {ok, Info_hash} = ?UTILS:hash_digest_to_string(Info_encoded),
 
+    % Preparing torrent tuple
     Torrent = {Info_hash, Metainfo},
     Current_torrents = State#state.torrents,
-    New_state = State#state{torrents = [Torrent|Current_torrents]},
 
-    utils:write_term_to_file(?TORRENTS_FILENAME, New_state#state.torrents),
+    Torrent_id = list_to_atom(Info_hash),
 
-    Atom_hash = list_to_atom(Info_hash),
-    Ret = supervisor:start_child(ertorrent_torrent_sup, [Atom_hash, [Info_hash, Metainfo, New_state#state.port]]),
+    case ?TORRENT_SUP:start_child(Torrent_id, [Metainfo, Start_when_ready]) of
+        {ok, _Child} ->
+            % Adding torrent tuple to the bookkeeping list
+            New_state = State#state{torrents = [Torrent|Current_torrents]},
 
-    io:format("~p: post add, ret '~p'~n", [?MODULE, Ret]),
+            % Write the updated bookkeeping list to file
+            % TODO commenting this one for now
+            %?UTILS:write_term_to_file(?ERTORRENT_META_FILE, New_state#state.torrents),
 
-    {reply, Info_hash, New_state};
+            Reply = {ok, Info_hash};
+        {error, Reason} ->
+            New_state = State,
 
-handle_call({remove}, _From, _State) ->
+            case Reason of
+                already_present ->
+                    Reply = {not_ok, already_present};
+                {already_present, _Child} ->
+                    Reply = {not_ok, already_present};
+                Reason ->
+                    lager:warning("~p: unexpected error when starting torrent worker: '~p'", [?MODULE, Reason]),
+                    Reply = {not_ok, unexpected, Reason}
+            end
+    end,
+
+    {reply, Reply, New_state, hibernate}.
+
+
+% @doc API to start added torrents
+% @end
+handle_cast({start}, State) ->
+    io:format("~p starting~n",[?MODULE]),
+    {noreply, State};
+
+handle_cast({remove}, State) ->
     io:format("~p remove~n",[?MODULE]),
-    {ok};
-handle_call({list}, _From, State) ->
-    io:format("~p list~n",[?MODULE]),
-
-    Torrents = State#state.torrents,
-
-    print_list(Torrents),
-
-    {reply, ok, State}.
-
-%% Asynchronous
+    {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State}.
 
 %% Do work here
+handle_info({peer_s_read_piece, From, Info_hash, Piece_idx}, State) ->
+    case lists:keymember(Info_hash, 1, State#state.torrents) of
+        true ->
+            Info_hash ! {torrent_s_read_piece,
+                         From,
+                         Info_hash,
+                         Piece_idx};
+        false ->
+            ?WARNING("trying to read piece for an nonexisting torrent")
+    end,
+    {noreply, State};
 handle_info({'EXIT', _ParentPid, shutdown}, State) ->
     {stop, shutdown, State};
-handle_info(_Info, _State) ->
-    ok.
+handle_info(Info, State) ->
+    ?WARNING("unhandled info request: " ++ Info),
+    {noreply, State}.
 
 terminate(Reason, _State) ->
     io:format("~p: going down, Reason: ~p~n", [?MODULE, Reason]),
@@ -127,21 +158,3 @@ terminate(Reason, _State) ->
 
 code_change(_OldVsn, _State, _Extra) ->
     {ok}.
-
-
--ifdef(TEST).
-
-dev_test() ->
-    erlang:display("Running developer test"),
-    {ok, Meta} = metainfo:read_file("../src/debian-8.3.0-amd64-netinst.iso.torrent"),
-    io:format("meta: ~p~n", [Meta]),
-    {ok, Pid} = torrent_gen:start_link(),
-    {ok, Pid2} = torrent_gen:start_link(),
-    erlang:display(Pid),
-    erlang:display(Pid2),
-    Ret = torrent_gen:stop(Pid),
-    torrent_gen:stop(Pid2),
-    erlang:display(Ret),
-    ?assert(true).
-
--endif.

@@ -1,0 +1,84 @@
+tODO:
+=======
+
+Questions:
+- If I have a supervision tree a supervisor, supervising second supervisor and
+  a gen_server. How would I go about to give, the PID of the second supervisor,
+  as an argument to the gen_server?
+- Are the three steps a sufficient boot separation? Check ertorrent_app.erl
+- Check out edown if it could be used for documentation?
+
+General:
+- handle_cast({peer_s_add_rx_peers, From, {Info_hash, Peers, Piece_length}}, State)
+  From is Torrent_id from utils:gen_id instead of atom version of the Info_hash
+  ?PEER_SRV:add_rx_peers(State#state
+  gen_server:cast(?MODULE, {peer_s_add_rx_peers, self() ... self() looks like
+  the result form gen_id()
+- Read up on OS-specifics http://erlang.org/doc/man/os.html#type-0
+- Move knowledge about the incoming peer port form the torrent sup.tree. It was
+  originially placed there, so that the torrent_worker could embed it into the
+  tracker messages. The torrent_worker should only send the tracker_worker with
+  the torrent relevant parameters. The tracker tree and the peer tree should
+  know about this port.
+- Determine a file format for cached metainfo (e.g. JSON, kept in a seperate
+  file?)
+- Determine a term format for cached metainfo (e.g. {metainfo_cache,
+  [MetainfoX, MetainfoY]} ?)
+- Separate the tracker dispatcher from the http dispatcher, to create a generic
+  http_dispatcher.
+- In order to run on a distributed system, the ssup have to start the srv which
+  in return calls start_child to the ssup to get the PID of sup.
+- Look over how the peer sockets are being set up. It could be an idea to use
+  the IP address as ID for the peer_workers but how to we retreive the address
+  if someone else is establishing the connection?
+- Figure out how to store the uploaded amount of each torrent since this is a
+  part of the tracker announcement
+- TERMS Decide on a term for torrent start_when_ready feature, state =
+  "active"?
+
+file_srv:
+- Implement handle_info({file_w_pread_resp
+
+file_worker:
+- handle_cast({pread add Fd to the cache
+- In terminate, close all the cached Fds
+- Unify variable naming, Offset/Begin
+
+settings_srv:
+- A setting for peer port
+
+tracker_srv:
+- Add incoming peer port
+
+torrent_worker:
+- Figure out how to keep track of assigned pieces and a way to limit duplicated
+  piece assignments (1-3 peers should be able to be assigned to the same piece
+  in case of speed).
+- Figure out the time between tracker announcements from the specification and
+  update the value of ANNOUNCE_TIME
+- During "handle_cast({start", request a tracker_worker
+- During "handle_cast({start", create a file_worker
+- Don't serve buffered requests when peer is choked.
+- Decide how to handle buffered requests during the time that the peer is
+  choked. Drop all the requests or keep them buffered?
+
+torrent_srv:
+- Iterate and add stored metainfo in init/1, stored metainfo should be read by
+  settings_srv
+- Add functionality to pause
+- Add functionality to remove torrents NOTE: Remember to remove it from the
+  cache and re-write the cache file.
+
+peer_accept:
+- Retreive the port from the settings_srv during init/1
+- Handle Reason in terminate/2
+
+peer_worker:
+- Send queued request when we receive unchoke from the peer
+- Look up if it's necessary to verify the Socket in messages from gen_tcp, e.g.
+  handle_info({tcp, Socket, Data})
+- handle_info({tcp, _S, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
+  Peer_id:160>>}, State), add verification of the Peer_id
+
+utils:
+- Sort the functions in this module

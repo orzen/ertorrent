@@ -3,12 +3,19 @@
 This is currently an early stage development project of an open
 source torrent client written in erlang.
 
-# Build instructions
+## Build instructions
 
 We use rebar to build the project.
 
-    $ rebar compile
+    $ rebar3 compile
 
-You can run the tests with
+For development, we recommend to build and get an interactive erlang shell with:
 
-    $ rebar eunit
+    $ rebar3 shell --config=config/sys.config
+
+You can run the tests with:
+
+    $ rebar3 eunit
+
+## Contribute
+

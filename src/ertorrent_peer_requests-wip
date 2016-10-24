@@ -1,0 +1,65 @@
+-module(ertorrent_peer_requests).
+
+-export([requests_prepare/4,
+         requests_dispatch/2,
+         requests_received/0]).
+
+-record(requests, {
+                   dispatched::list(),
+                   prepared::list(),
+                   received::list()
+                  }).
+
+-export_type([requests/0]).
+
+-include("ertorrent_peer_tcp_protocol.hrl").
+
+% -spec pieces_to_blocks_offsets(Pieces::list(), Max_block_length::integer()) -> {ok, list()}.
+% @doc Create a tuple list with block information form a list of pieces. Output
+% example [{Piece_index, Block_offset, Block_length}]
+% @end
+pieces_to_block_offsets(Pieces, Max_block_length) when is_list(Pieces) andalso
+                                                 is_integer(Max_block_length) ->
+    Foldl = fun({Piece_idx, _Piece_hash, _File_path, _File_offset,
+                 Piece_length}, Acc) ->
+                % Generate a tuple list with the block offsets and the length per block
+                {ok, Block_offsets} = ?UTILS:block_offsets(Max_block_length,
+                                                           Piece_length),
+
+                % The block offsets is the same for each piece so lets put them together in
+                % a tuplelist.
+                Blocks = [{Piece_index, Block_offset, Block_length} ||
+                          Piece_index <- [Piece_idx],
+                          {Block_offset, Block_length} <- Block_offsets],
+
+                [Blocks| Acc]
+            end,
+    Rx_blocks = lists:foldl(Foldl, [], Pieces),
+    Rx_blocks_flatten = lists:flatten(Rx_blocks),
+    {ok, Rx_blocks_flatten}.
+
+requests_prepare(Rx_data, Socket, Block_length, Pieces) ->
+    % Rx_queue = [{Piece_idx, Block_offset, Block_length}]
+    % Rx_blocks = [Rx_queue0, Rx_queue1]
+    {ok, Rx_blocks} = pieces_to_block_offsets(Pieces, State#state.block_length),
+
+    Fun = fun({Piece_index, Begin, Length}) ->
+              {ok, Message} = msg_request(Piece_index, Begin, Length),
+              Message
+          end,
+
+    % Requests = [{Piece_index, Block_offset, Block_length}, ...]
+    Prepared = [{request, {func, X}, {socket, Y}, {args, Z}} || X <- [Fun], Y <- [Peer_socket], Z <- Rx_blocks],
+
+    New_prepared = lists:merge(Requests#requests.prepared, Prepared),
+
+    {ok, Requests#requests{prepared = New_prepared}}.
+
+requests_dispatch(Rx, Amount) ->
+    Requests = lists:sublist(Rx#rx_data.prepared, Amount),
+    Dispatched = lists:merge(Rx#rx_data.dispatched, Requests),
+
+    {ok, Rx#rx_data{dispatched = Dispatched}, Requests}.
+
+requests_received() ->
+    ok.

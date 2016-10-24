@@ -1,0 +1,33 @@
+-module(ertorrent_tracker_udp_srv).
+
+-export([
+         init/1,
+         handle_call/3,
+         handle_cast/2
+        ]).
+
+-record(state, {
+          transaction_ids::map(),
+          trackers::map(),
+          port_range::list()
+         }).
+
+announce(Address, Port) ->
+    gen_server:cast(?MODULE, {announce,
+                              {reply, self()},
+                              {address, Address, Port}}).
+
+get_transaction_id() ->
+    ok.
+
+init([{port_range, [{min, Port_min}, {max, Port_max}]}]) ->
+    State = #state{port_range = [{min, Port_min}, {max, Port_max}], },
+
+    {ok, State, hibernate}.
+
+
+handle_call(_Request, _From, State) ->
+    {noreply, State, hibernate}.
+
+handle_cast(Request. State) ->
+    {noreply, State, hibernate}.

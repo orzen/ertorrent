@@ -1,0 +1,697 @@
+%%%-------------------------------------------------------------------
+%%% @todo read up on edoc
+%%% @doc torrent_gen, this is the interface to interact with the
+%%% torrents.
+%%% Messages:
+%%%
+%%% @end
+%%%-------------------------------------------------------------------
+
+-module(ertorrent_torrent_worker).
+
+-behaviour(gen_server).
+
+-export([
+         activate/1,
+         deactivate/1,
+         get_bitfield/1,
+         get_block_length/1,
+         shutdown/1,
+         start_torrent/1,
+         request_peers/2,
+         request_rx_pieces/3
+        ]).
+
+-export([]).
+
+-export([
+         start/1,
+         start_link/2,
+         stop/1
+        ]).
+
+-export([init/1,
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2]).
+
+-include("ertorrent_log.hrl").
+-include("ertorrent_modules.hrl").
+
+% EXECUTION ORDER:
+% init
+% hash_files_resp
+% USER INPUT
+% tracker_announce
+% add_rx_peers
+
+%% @doc Type to represent the internal state of a torrent worker
+%% @initializing == before hashing is completed
+%% @inactive == after hashing has been completed and before the user has called
+%% start
+%% @active == everything is up and running
+%% @end
+
+%% @type state_type()
+-type state_type() :: initializing | active | inactive.
+
+%% @doc The event type is used to represent the state of the torrent towards
+%% the tracker.
+%% @end
+-type event_type() :: stopped | started | completed.
+
+-export_type([state_type/0,
+              event_type/0]).
+
+-record(state, {announce::string(),
+                announce_ref::reference(), % Timer reference for tracker announcements
+                bitfield::<<>>, % Our bitfield for bookkeeping and peer messages
+                bitfields = [], % Current peers' bitfield e.g. [{peer's id (not peer_id), bitfield}]
+                block_length::integer(), % Length of a block, this is decided by the client and is specified in settings_srv
+                compact, % The format of the tracker announcements, 0 = non-compact, 1 = compact
+                distributed_rx_pieces::list(), % Bookkeeping of distributed pieces and number of times it is currently distributed, e.g. [{Piece_index, Distribute_counter}]
+                downloaded::integer(), % Tracker information about how much has been downloaded
+                event::event_type(),
+                files::tuple(), % Files tuple e.g. {files, multiple, Name, Files_list}
+                file_paths::list(),
+                file_worker::reference(), % The ID for file workers are unique integers
+                info_hash_str::string(),
+                info_hash_bin::binary(),
+                left::integer(), % Tracker information about how much is left to download
+                length::integer(), % Total length of the torrent contents
+                locations::list(),
+                metainfo,
+                peers::list(), % Not contacted peers from the last tracker announcement
+                peer_id::string(), % Unique peer id e.g. ER1-0-0-<random characters>
+                peer_listen_port::integer(),
+                peers_max::integer(), % The maximum amount of peers this torrent is allowed to have
+                peers_cur::integer(), % Current number of active peers
+                pieces::list(), % A list with tuples containing piece related information e.g. {Piece_idx, Piece_hash, File_path, File_offset, Piece_length}
+                piece_length::integer(), % Length of a piece (in bytes). This is retreived from the metainfo.
+                remaining_pieces::list(), % Prioritized list of the remaining pieces
+                state:: initializing | active | inactive,
+                start_when_ready::boolean(), % TODO use this, if the torrent should start regardless of user input. Should also be used if you want to activate the torrent whenever the torrent is shifting state from initializing to inactive.
+                stats_leechers::integer(), % Stats from the tracker that might be of interest
+                stats_seeders::integer(), % Stats from the tracker that might be of interest
+                tracker_interval::integer(),
+                uploaded::integer()}).
+
+%%% Client API %%%
+
+% @doc Setting a torrent worker to the state active. The term
+% activate/deactivate is chosen so that isn't mistaken for start/1 and stop/1
+% which are common client APIs in Erlang OTP modules.
+% @end
+activate(Torrent_w_id) ->
+    gen_server:cast(Torrent_w_id, {activate}).
+
+% @doc Setting a torrent worker to the state inactive. The term
+% activate/deactivate is chosen so that isn't mistaken for start/1 and stop/1
+% which are common client APIs in Erlang OTP modules.
+% @end
+deactivate(Torrent_w_id) ->
+    gen_server:cast(Torrent_w_id, {deactivate}).
+
+get_bitfield(Torrent_w_id) ->
+    gen_server:call(Torrent_w_id, get_bitfield).
+
+get_block_length(Torrent_w_id) ->
+    gen_server:call(Torrent_w_id, {get_block_length}).
+
+% @doc Used by the peer server to request a new set of potential peers.
+% @end
+request_peers(Torrent_w_id, Peer_number) ->
+    gen_server:cast(Torrent_w_id, {torrent_w_request_peers, Peer_number}).
+
+% @doc Used by peer workers when their rx queue is close to being empty.
+% @end
+request_rx_pieces(Torrent_w_id, Peer_bitfield, Piece_number) ->
+    gen_server:cast(Torrent_w_id, {torrent_w_request_rx_pieces, self(),
+                                   Peer_bitfield, Piece_number}).
+
+% Starting server
+start_link(ID, Args) ->
+    lager:debug("~p: ~p: id: '~p'", [?MODULE, ?FUNCTION_NAME, ID]),
+    gen_server:start_link({local, ID}, ?MODULE, Args, [{hibernate_after, 2000}]).
+
+% Shutting down the server
+shutdown(Name) ->
+    gen_server:cast(Name, {shutdown}).
+
+% Changing state of the torrent to started
+start(Name) when is_atom(Name) ->
+    gen_server:call(Name, {start}).
+
+% Changing state of the torrent to stopped
+stop(Name) when is_atom(Name) ->
+    io:format("stopping~n"),
+    gen_server:call(Name, {stop}).
+
+%% INTERNAL FUNCTIONS
+
+% @doc Timer function for when to perform tracker announcements
+% @end
+tracker_announce_loop(State) ->
+    case is_reference(State#state.announce_ref) of
+        true ->
+            % Added the try catch after cancel_timer was failing
+            try erlang:cancel_timer(State#state.announce_ref) of
+                _ -> ok
+            catch
+                _ -> lager:debug("~p: ~p: failed to cancel timer")
+            end;
+        _ ->
+            lager:debug("~p: ~p: no timer to cancel",
+                        [?MODULE, ?FUNCTION_NAME])
+    end,
+
+    Announce = fun() ->
+                   ?TRACKER:announce2(State#state.announce,
+                                      State#state.info_hash_bin,
+                                      State#state.peer_id,
+                                      State#state.peer_listen_port,
+                                      State#state.uploaded,
+                                      State#state.downloaded,
+                                      State#state.left,
+                                      atom_to_list(State#state.event),
+                                      State#state.compact)
+               end,
+
+    % TODO make this async
+    case Announce() of
+        {ok, Response_tmp} ->
+            Response = Response_tmp;
+        error ->
+            {ok, Response} = Announce(),
+            Response
+    end,
+
+    lager:debug("~p: ref '~p'", [?FUNCTION_NAME, self()]),
+
+    case ?METAINFO:get_value(<<"interval">>, Response) of
+        {ok, Interval} ->
+            % Send message to tracker.
+            Ref = erlang:send_after(Interval*1000, self(), {torrent_w_tracker_announce_loop}),
+
+            self() ! {tracker_announce, Response};
+        {error, no_match} ->
+            lager:warning("invalid tracker response (missing interval)"),
+
+            % Send message to tracker.
+            Ref = erlang:send_after(?ANNOUNCE_TIME*1000, self(), {torrent_w_tracker_announce_loop})
+    end,
+
+    {ok, Ref}.
+
+start_torrent(State) ->
+    lager:debug("~p: ~p: ref '~p'", [?MODULE, ?FUNCTION_NAME, self()]),
+    % Ensure that the directory structure is alright
+    lists:foreach(fun(Path) ->
+                      case filelib:ensure_dir(Path) of
+                          ok ->
+                              lager:debug("~p: ~p: ensured path '~p'",
+                                          [?MODULE, ?FUNCTION_NAME, Path]);
+                          {error, Reason} ->
+                              lager:error("~p: ~p: failed to create path '~p', reason '~p'",
+                                          [?MODULE, ?FUNCTION_NAME, Path, Reason])
+                      end
+                  end, State#state.file_paths),
+
+    % Create an update state record for the tracker announcement
+    New_state_event = State#state{event=started},
+
+    % Initial announce
+    {ok, Announce_ref} = tracker_announce_loop(New_state_event),
+
+    New_state = New_state_event#state{announce_ref = Announce_ref,
+                                      event = started,
+                                      state = active},
+    {ok, New_state}.
+
+update_rx_pieces(Own_bitfield, []) when is_list(Own_bitfield) ->
+    lager:debug("[~p]: ~p: ~p: bitfield '~p'", [self(), ?MODULE, ?FUNCTION_NAME, Own_bitfield]),
+    ?ALGO:rx_init(Own_bitfield);
+update_rx_pieces(Own_bitfield, Peer_bitfields) when
+      is_list(Own_bitfield) andalso
+      is_list(Peer_bitfields) ->
+    lager:debug("[~p]: ~p: ~p: bitfield '~p', peer bf '~p'",
+                [self(), ?MODULE, ?FUNCTION_NAME, Own_bitfield, Peer_bitfields]),
+
+    % Filter peer's id from the tuple list Peer_bitfields
+    Bitfields_alone = [Bitfield || {_Peers_id, Bitfield} <- Peer_bitfields],
+
+    lager:warning("BITFIELD '~p'", [Bitfields_alone]),
+
+    ?ALGO:rx_update(Own_bitfield, Bitfields_alone).
+
+%%% Callback functions
+% TODO:
+% - Gather every value fetched from the metainfo, re-group and maybe split up
+% the contents of this function.
+init([Metainfo, Start_when_ready]) ->
+    lager:debug("~p: ~p: metainfo: '~p', start_when_ready: '~p'",
+                [?MODULE,
+                 ?FUNCTION_NAME,
+                 Metainfo,
+                 Start_when_ready]),
+
+    % Creating info hash
+    {ok, Info} = ?METAINFO:get_value(<<"info">>, Metainfo),
+    {ok, Info_encoded} = ?BENCODE:encode(Info),
+    Info_hash_bin = crypto:hash(sha, Info_encoded),
+    {ok, Info_hash_str} = ?UTILS:hash_digest_to_string(Info_encoded),
+
+    {ok, Announce_address} = ?METAINFO:get_value(<<"announce">>, Metainfo),
+    {ok, Piece_length} = ?METAINFO:get_value(<<"piece length">>, Info),
+    % Prepare a list of pieces since, the piece section of the metainfo
+    % consists of a concatenated binary of all the pieces.
+    {ok, Pieces_bin} = ?METAINFO:get_value(<<"pieces">>, Info),
+
+    Resolved_files = ?METAINFO:resolve_files(Metainfo),
+
+    {ok, Piece_hashes} = ?UTILS:pieces_binary_to_list(Pieces_bin),
+    % TODO check if the calculated length match the one in the meta info
+    Length = length(Piece_hashes) * Piece_length,
+
+    {block_length, Block_length} = ?SETTINGS_SRV:get_sync(block_length),
+    {download_location, Location} = ?SETTINGS_SRV:get_sync(download_location),
+    {peer_id, Peer_id} = ?SETTINGS_SRV:get_sync(peer_id),
+    {peer_listen_port, Peer_listen_port} = ?SETTINGS_SRV:get_sync(peer_listen_port),
+
+    % TODO investigate support for allocate
+    case Resolved_files of
+        {files, multiple, _Name, Files_list} ->
+            Files_reverse = lists:foldl(fun({Path, _}, Acc) ->
+                                            Full_path = Location ++ "/" ++ Path,
+                                            [Full_path| Acc]
+                                        end, [], Files_list),
+
+            % Preserve the order
+            File_paths = lists:reverse(Files_reverse);
+        {files, single, Name, _} ->
+            File_paths = [Location ++ "/" ++ Name]
+    end,
+
+    % Calculate the tracker statistics
+    % TODO
+    % - Should the tracker statistics be written to file instead?
+    % TODO Remove
+    %Downloaded = lists:foldl(fun(File_path, Acc) ->
+    %                                 File_size = filelib:file_size(File_path),
+    %                                 Acc + File_size
+    %                         end, 0, File_paths),
+
+    % Calculate the piece layout over the file structure
+    {ok, Piece_layout} = ?UTILS:create_file_mapping(Resolved_files, Piece_length),
+
+    % Create a list with all the piece related information
+    Pieces = lists:zipwith(fun(Piece_hash, {Piece_idx,
+                                            File_path,
+                                            File_offset,
+                                            Piece_length2}) ->
+                               {Piece_idx, Piece_hash, File_path, File_offset,
+                                Piece_length2}
+                           end, Piece_hashes, Piece_layout),
+
+    % THIS SHOULD BE THE END OF THE INITIALIZATION
+    % hash_files is an async call and we should be ready to serve when we
+    % receive its response.
+    ?HASH_SRV:hash_files(Piece_layout),
+
+    State = #state{announce = Announce_address,
+                   block_length = Block_length,
+                   compact = 1,
+                   distributed_rx_pieces = [],
+                   downloaded = 0,
+                   event = stopped,
+                   files = Resolved_files,
+                   file_paths = File_paths,
+                   info_hash_bin = Info_hash_bin,
+                   info_hash_str = Info_hash_str,
+                   left = Length,
+                   length = Length,
+                   metainfo = Metainfo,
+                   peer_id = Peer_id,
+                   peer_listen_port = Peer_listen_port,
+                   peers_cur = 0,
+                   peers_max = 10,
+                   pieces = Pieces,
+                   piece_length = Piece_length,
+                   start_when_ready = Start_when_ready,
+                   uploaded = 0},
+
+    lager:debug("~p: ~p: new torrent '~p'", [?MODULE, ?FUNCTION_NAME, Info_hash_str]),
+
+    {ok, State, hibernate}.
+
+terminate(Reason, _State) ->
+    io:format("~p: going down, with reason '~p'~n", [?MODULE, Reason]),
+
+    % Add announce with event=stopped
+    ok.
+
+%% Synchronous
+
+handle_call(get_bitfield, _From, State) ->
+    {reply, State#state.bitfield, State, hibernate};
+
+handle_call({get_block_length}, _From, State) ->
+    {reply, State#state.block_length, State, hibernate};
+
+handle_call({get_piece_length}, _From, State) ->
+    {reply, State#state.piece_length, State, hibernate};
+
+% Old prototype
+handle_call({list}, _From, _State) ->
+    io:format("~p list~n",[?MODULE]),
+    {ok}.
+
+% Request from the peer_s when it needs more peers to reach the planned
+% amount of peers.
+handle_cast({torrent_w_request_peers, Peer_amount}, State) ->
+    lager:debug("~p: ~p: torrent_w_request_peers, amount '~p'",
+                [?MODULE, ?FUNCTION_NAME, Peer_amount]),
+
+    lager:debug("~p: ~p: number of peers '~p'", [?MODULE, ?FUNCTION_NAME,
+                                                 length(State#state.peers)]),
+
+    % Check if the current list of potential peers is sufficient otherwise make
+    % a new announcement to request more peers.
+    case length(State#state.peers) < Peer_amount of
+        false ->
+            % Create a list, equal to the amount of missing peers, to activate
+            {Peers_activate, Peers_rest} = lists:split(Peer_amount,
+                                                       State#state.peers),
+
+            lager:debug("~p: ~p: refilling peers '~p'",
+                        [?MODULE, ?FUNCTION_NAME, Peers_activate]),
+
+            % Tell the peer_s to start the peers
+            ?PEER_SRV:add_rx_peers(State#state.info_hash_bin, Peers_activate,
+                                   State#state.piece_length),
+
+            New_state = State#state{peers_cur = State#state.peers_max,
+                                    peers = Peers_rest};
+        true ->
+            % Re-schedule the announce earlier, to get more peers. Updating the
+            % peer counter and letting the announce loop do it's jobs.
+            {ok, Ref} = tracker_announce_loop(State),
+
+            Current_peers = State#state.peers_max - Peer_amount,
+
+            New_state = State#state{announce_ref = Ref,
+                                    peers_cur = Current_peers}
+    end,
+
+    {noreply, New_state, hibernate};
+% @doc Request from a peer worker to fill up its queue for pieces to request
+% from a peer.
+% @end
+handle_cast({torrent_w_request_rx_pieces, From, Peer_bitfield, Piece_number}, State) ->
+    lager:debug("~p: ~p: creating piece queue for peer '~p'",
+                [?MODULE, ?FUNCTION_NAME, From]),
+
+    % TODO The distribution limit should not be controlled within this function
+    {ok, Piece_indices, New_distrib_pieces} = ?ALGO:rx_next(Peer_bitfield,
+                                                            State#state.remaining_pieces,
+                                                            State#state.distributed_rx_pieces,
+                                                            1,
+                                                            Piece_number),
+
+    lager:debug("~p: ~p: assigning pieces to peer '~p'", [?MODULE,
+                                                          ?FUNCTION_NAME,
+                                                          Piece_indices]),
+
+    Filter = fun({Piece_idx, _Piece_hash, _File_path, _File_offset, _Piece_length}) ->
+                 lists:member(Piece_idx, Piece_indices)
+             end,
+    Pieces = lists:filter(Filter, State#state.pieces),
+
+    From ! {torrent_w_rx_pieces, Pieces},
+
+    New_state = State#state{distributed_rx_pieces = New_distrib_pieces},
+
+    {noreply, New_state, hibernate};
+%% User input that should change the torrent state from inactive to active
+%% TODO finish me!
+% @doc API for starting a torrent
+% @end
+handle_cast({start, _From}, State) ->
+    case State#state.state of
+        inactive ->
+            % TODO
+            % - spawn file_w
+            % - spawn peer_w
+
+            New_state = start_torrent(State);
+        active ->
+            New_state = State;
+        initializing ->
+            New_state = State#state{start_when_ready = true};
+        _ ->
+            New_state = State,
+
+            lager:error("torrent worker in a broken state: '~p'", [atom_to_list(State#state.state)])
+    end,
+
+    {noreply, New_state, hibernate};
+handle_cast(stop, State) ->
+    {stop, normal, State};
+handle_cast(Request, State) ->
+    lager:warning("~p: ~p: unhandled cast '~p'",
+                  [?MODULE, ?FUNCTION_NAME, Request]),
+    {noreply, State, hibernate}.
+
+handle_info({torrent_w_tracker_announce_loop}, State) ->
+    {ok, Announce_ref} = tracker_announce_loop(State),
+
+    New_state = State#state{announce_ref = Announce_ref},
+
+    {noreply, New_state};
+
+handle_info({tracker_announce, Response}, State) ->
+    % Using utility function from metainfo since operates on bdecoded
+    % structures.
+    % TODO Check if this will be use full in the future otherwise remove it
+    % (incomplete and complete are not mandatory)
+    % {ok, Stats_seeders} = ?METAINFO:get_value(<<"complete">>, Response),
+    % {ok, Stats_leechers} = ?METAINFO:get_value(<<"incomplete">>, Response),
+    {ok, Peers} = ?METAINFO:get_value(<<"peers">>, Response),
+
+    % The peers in a tracker response can come in two forms as a dictionary or
+    % binary. If the client announced, requesting compact the format will be
+    % binary otherwise dictonary. Is it safe to assume that every tracker
+    % supports compact since compact wasn't part of the initial version of the
+    % torrent protocol?
+    case is_binary(Peers) of
+        true ->
+            {ok, Peer_list} = ?BINARY:parse_peers4(Peers);
+        false ->
+            F = fun({Peer_id, Address_bin, Port}, Acc) ->
+                    % TODO the convertion and resolving to
+                    % proper addresses could be moved to
+                    % the peer_w.
+                    Peer_id_str = binary_to_list(Peer_id),
+
+                    % Convert the bdecoded value from binary to string
+                    Address_str = binary_to_list(Address_bin),
+
+                    % Translate address from a string to tuple.
+                    % NOTE: This will NOT work for hostnames.
+                    case inet:parse_address(Address_str) of
+                        {ok, Address} ->
+                            Address;
+                        % If parse_address() fails, the value is most likely a hostname
+                        {error, einval} ->
+                            % TODO maybe it is relevant to resolve to IPv6 family as well?
+                            % Trying to resolve the hostname to IPv4 family
+                            {ok, Address} = inet:getaddr(Address_str, inet)
+                    end,
+
+                    [{Address, Port, Peer_id_str}| Acc]
+                end,
+            Peer_list = lists:foldl(F, [], Peers)
+    end,
+
+    % TODO this should not be done every time we receive a tracker response
+    case State#state.peers_cur < State#state.peers_max of
+        true ->
+            % Calculate this missing number of peers
+            Missing_nbr_peers = State#state.peers_max - State#state.peers_cur,
+
+            % Create a list, equal to the amount of missing peers, to activate
+            {Peers_activate, Peers_rest} = lists:split(Missing_nbr_peers, Peer_list),
+
+            lager:debug("~p: ~p: peers: '~p'", [?MODULE, ?FUNCTION_NAME, Peer_list]),
+
+            % Tell the peer_s to start the peers
+            ?PEER_SRV:add_rx_peers(State#state.info_hash_bin, Peers_activate,
+                                   State#state.piece_length);
+        false ->
+            lager:warning("nothing to do here"),
+            Peers_rest = Peer_list
+    end,
+
+    % Assume that the maximum amount of peers has been acheived until a message
+    % has been received that says otherwise.
+    New_state = State#state{peers_cur = State#state.peers_max,
+                            peers = Peers_rest},
+
+    {noreply, New_state};
+
+% @doc Response from the peer server after trying to establish a peer
+% connection for a receiving peer_worker. Peer might be a tuple with the peer
+% information or 'error'.
+% @end
+handle_info({peer_s_rx_peer, Peer}, State) ->
+    lager:debug("~p: ~p: peer_s_rx_peer '~p'", [?MODULE, ?FUNCTION_NAME, Peer]),
+    {noreply, State, hibernate};
+% @doc Response from the peer server after trying to establish multiple peer
+% connections for multiple receiving peer workers. The response should not
+% contain any 'error', however it might be an empty list if all the peer
+% workers failed to connect to its peer.
+% @end
+handle_info({peer_s_rx_peers, Peers}, State) ->
+    lager:debug("~p: ~p: peer_s_rx_peers '~p'", [?MODULE, ?FUNCTION_NAME, Peers]),
+    {noreply, State, hibernate};
+
+% @doc A peer worker received a peers bitfield. Store it for the piece
+% scheduling. Note: The tag does not contain a suffix (res/req) due to being a
+% one-way communication.
+% @end
+handle_info({peer_w_rx_bitfield, ID, Bitfield}, State) ->
+    {ok, Bitfield_list} = ?BINARY:bitfield_to_list(State#state.bitfield),
+
+    lager:warning("~p: bitfield '~p'", [?FUNCTION_NAME, Bitfield_list]),
+
+    New_bitfields = [{ID, Bitfield}| State#state.bitfields],
+
+    {ok, Remaining_pieces} = update_rx_pieces(Bitfield_list,
+                                              New_bitfields),
+
+    New_state = State#state{bitfields = New_bitfields,
+                            remaining_pieces = Remaining_pieces},
+
+    {noreply, New_state};
+
+% @doc A peer worker need to serve the torrent current bitfield to a connecting
+% peer.
+% @end
+handle_info({peer_w_tx_bitfield_req, ID}, State) ->
+    ID ! {torrent_w_tx_bitfield_res, State#state.bitfield},
+
+    {noreply, State};
+
+% @doc A peer has requested a non-cached piece and it have to be read from
+% disk. Translate from piece index to file, offset, length and send a request
+% to the file worker.
+% @end
+handle_info({peer_w_tx_piece_req, From, {Piece_index}}, State) ->
+    case lists:keyfind(Piece_index, 1, State#state.pieces) of
+        {Piece_index, _Piece_hash, File, Offset, Length} ->
+            State#state.file_worker ! {torrent_w_read_offset_req, From, {Piece_index, File, Offset, Length}};
+        false ->
+            lager:warning("~p: ~p: failed to lookup file offset for piece index: '~p'",
+                          [?MODULE, ?FUNCTION_NAME, Piece_index])
+    end,
+    {noreply, State};
+
+% @doc The file worker responded to a previous read offset request. Forward the
+% piece data to the peer worker that requested it.
+% @end
+handle_info({file_w_read_offset_res, _From, {_Piece_idx}}, State) ->
+    % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
+
+handle_info({file_w_write_offset_res, _From, {_Info_hash, _Piece_idx}}, State) ->
+    % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
+
+% @doc A peer worker terminated. Figure out which peer to connect to and fire
+% up a new peer worker if it's necessary.
+% @end
+% TODO This should probably be moved to peer_s
+handle_info({peer_w_terminate, ID, Assigned_pieces}, State) when is_list(Assigned_pieces) ->
+    lager:debug("~p: ~p: peer_w_terminate", [?MODULE, ?FUNCTION_NAME]),
+
+    % Remove the peer_w's bitfield
+    case lists:keytake(ID, 1, State#state.bitfields) of
+        {value, {ID, _Bitfield}, New_bitfields} ->
+            {ok, Bitfield_list} = ?BINARY:bitfield_to_list(State#state.bitfield),
+            {ok, Remaining_pieces} = update_rx_pieces(Bitfield_list, New_bitfields),
+            New_bitfields;
+        % Whenever a peer_w terminate before receiving a bitfield
+        false ->
+            New_bitfields = State#state.bitfields,
+            Remaining_pieces = State#state.remaining_pieces
+    end,
+
+    % TODO
+    % Re-add the assigned piece indices to the list again if it wasn't finished
+
+    % Fire up a new peer_w
+    ok = request_peers(self(), 1),
+
+    New_state = State#state{bitfields = New_bitfields,
+                            remaining_pieces = Remaining_pieces},
+
+    {noreply, New_state, hibernate};
+
+%% Response form hashing a single piece
+%% TODO update the bitfield and update downloaded, left if the piece hashes match
+%% - Match the piece hashes
+%% - If piece is ok, look up a new one and ask the peer_w for that one.
+handle_info({torrent_s_hash_piece_resp, _Index, _Hash}, State) ->
+    lager:debug("~p: ~p", [?MODULE, ?FUNCTION_NAME]),
+    {noreply, State, hibernate};
+
+%% Response from the initial hashing
+%% TODO update the values of downloaded, left
+% @doc Response from the hashing server. This is used during the initial
+% hashing of previously downloaded files for the torrent. This is the last step
+% of initialization of a torrent worker.
+% @end
+handle_info({hash_s_hash_files_res, {_Job_ID, Hashes}}, State) ->
+    lager:debug("~p: ~p", [?MODULE, ?FUNCTION_NAME]),
+
+    % Construct a list of the to list in the form [{X_hash, Y_hash}, {X_hash1,
+    % Y_hash1}]. Now the comparison can be done in one iteration of the ziped
+    % list.
+    Zipped_piece_hashes = lists:zip(State#state.pieces, Hashes),
+
+    % Constuct a new list over missing and completed pieces.
+    % 0 represents a missing piece.
+    % 1 represents a completed piece.
+    % The new list will be in reverse order.
+    Bitfield_list = lists:foldl(fun({X,Y}, Acc) ->
+                                    case X =:= Y of
+                                        true -> R = 1;
+                                        false -> R = 0
+                                    end,
+                                    [R| Acc]
+                                end, [], Zipped_piece_hashes),
+
+    % Reverse to regain correct order
+    Bitfield_list_ordered = lists:reverse(Bitfield_list),
+    lager:warning("~p: bitfield '~p'", [?FUNCTION_NAME, Bitfield_list_ordered]),
+    % TODO calculate new #state.left amount of 1s in the bitfield times piece_length
+
+    % Convert list to bitfield
+    {ok, Bitfield} = ?BINARY:list_to_bitfield(Bitfield_list_ordered),
+
+    {ok, Remaining_pieces} = update_rx_pieces(Bitfield_list_ordered, []),
+
+    case State#state.start_when_ready of
+        true ->
+            Tmp_state = State#state{bitfield = Bitfield,
+                                    remaining_pieces = Remaining_pieces},
+            {ok, New_state} = start_torrent(Tmp_state);
+        false ->
+            New_state = State#state{bitfield = Bitfield,
+                                    remaining_pieces = Remaining_pieces,
+                                    state = inactive}
+    end,
+
+    {noreply, New_state, hibernate}.
+
