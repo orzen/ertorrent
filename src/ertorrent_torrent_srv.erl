@@ -9,6 +9,8 @@
 
 -behaviour(gen_server).
 
+-include("ertorrent_debug.hrl").
+
 -define(SERVER, ?MODULE).
 -define(TORRENTS_FILENAME, "TEST_FILE").
 
@@ -30,13 +32,11 @@
 
 -record(state, {port, supervisor, torrents=[]}).
 
-
 add(Metainfo) ->
     gen_server:call(?MODULE, {add, Metainfo}).
 
 list(Pid) ->
     gen_server:call(Pid, {list}).
-
 
 print_list([]) ->
     true;
@@ -47,8 +47,8 @@ print_list([H|T]) ->
 
 %%% Standard client API
 % Args = [Port]
-start_link(Args) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, []).
+start_link([Port]) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Port], []).
 
 stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
@@ -78,23 +78,29 @@ handle_call({start}, _From, _State) ->
     {ok};
 handle_call({add, Metainfo}, _From, State) ->
     Name = metainfo:get_info_value(<<"name">>, Metainfo),
-    io:format("~p: adding torrent '~p'~n",[?MODULE, Name]),
 
     % Creating info hash
     {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
     {ok, Info_encoded} = bencode:encode(Info),
     {ok, Info_hash} = utils:encode_hash(Info_encoded),
 
+    % Adding torrent tuple to the bookkeeping list
     Torrent = {Info_hash, Metainfo},
     Current_torrents = State#state.torrents,
     New_state = State#state{torrents = [Torrent|Current_torrents]},
 
+    % Write the updated bookkeeping list to file
     utils:write_term_to_file(?TORRENTS_FILENAME, New_state#state.torrents),
 
     Atom_hash = list_to_atom(Info_hash),
-    Ret = supervisor:start_child(ertorrent_torrent_sup, [Atom_hash, [Info_hash, Metainfo, New_state#state.port]]),
-
-    io:format("~p: post add, ret '~p'~n", [?MODULE, Ret]),
+    Ret = supervisor:start_child(ertorrent_torrent_sup,
+                                 [Atom_hash,
+                                  [Info_hash,
+                                   Metainfo,
+                                   New_state#state.port
+                                  ]
+                                 ]
+                                ),
 
     {reply, Info_hash, New_state};
 
