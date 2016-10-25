@@ -13,7 +13,31 @@
          msg_cancel/3,
          msg_port/1]).
 
--include("peer_protocol_message_id.hrl").
+-define(CHOKE, <<0:8>>).
+-define(UNCHOKE, <<1:8>>).
+-define(INTERESTED, <<2:8>>).
+-define(NOT_INTERESTED, <<3:8>>).
+-define(HAVE, <<4:8>>).
+-define(BITFIELD, <<5:8>>).
+-define(REQUEST, <<6:8>>).
+-define(PIECE, <<7:8>>).
+-define(CANCEL, <<8:8>>).
+-define(PORT, <<9:8>>).
+
+-type handshake()::<<19:32, "BitTorrent protocol", 0:64, Info_hash:160, Peer_id:160>>.
+-type keepalive()::<<0:32>>.
+-type choke()::<<1:32, ?CHOKE>>.
+-type unchoke()::<<1:32, ?UNCHOKE>>.
+-type interested()::<<1:32, ?INTERESTED>>.
+-type not_interested()::<<1:32, ?NOT_INTERESTED>>.
+-type have()::<<5:32, ?HAVE, Piece_hash:32>>.
+% Remember Id represents one of the bytes of the bitfield length
+-type bitfield()::<<Length:32, ?HAVE, Bitfield>>.
+-type request()::<<13:32, ?REQUEST, Piece_hash:32, Begin:32, Length:32>>.
+-type piece()::<<Length:32, ?PIECE, Piece_hash:32, Begin:32, Block:32>>.
+-type cancel()::<<13:32, ?CANCEL, Piece_hash:32, Begin:32, Length:32>>.
+-type port()::<<3:32, ?PORT, Listen_port:32>>.
+
 
 parse_length_prefixed_value(Length, Bitstring) ->
     <<Value:Length/big-integer-unit:8, Rest>> = Bitstring,
