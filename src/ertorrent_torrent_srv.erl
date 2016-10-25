@@ -9,7 +9,7 @@
 
 -behaviour(gen_server).
 
--include("ertorrent_debug.hrl").
+-include("ertorrent_log.hrl").
 
 -define(SERVER, ?MODULE).
 -define(TORRENTS_FILENAME, "TEST_FILE").
