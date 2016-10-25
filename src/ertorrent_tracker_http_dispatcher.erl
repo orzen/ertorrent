@@ -9,7 +9,7 @@
 
 -behaviour(gen_server).
 
--include("ertorrent_debug.hrl").
+-include("ertorrent_log.hrl").
 
 -define(TRACKER_REQUEST, ertorrent_tracker_request).
 
