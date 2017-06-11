@@ -1,16 +1,11 @@
 -module(bencode).
 
--export([decode_file/1,
-         decode/1,
+-export([decode/1,
          encode/1]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
-
-decode_file(Filename) ->
-    {ok, Data} = file:read_file(Filename),
-    decode(Data).
 
 decode(Data) ->
     [Decoded] = decode(iolist_to_binary(Data), []),

@@ -1,5 +1,6 @@
 -module(ertorrent_sup).
 
+-define(HASH, ertorrent_hash_sup).
 -define(TRACKER, ertorrent_tracker_sup).
 -define(TORRENT, ertorrent_torrent_ssup).
 
@@ -10,17 +11,23 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init(_Arg) ->
-    MaxRestart = 4,
-    MaxTime = 5,
+    Max_restart = 4,
+    Max_time = 5,
 
-    SupFlags = {one_for_one, MaxRestart, MaxTime},
+    Sup_flags = {one_for_one, Max_restart, Max_time},
 
-    TrackerSpecs = {?TRACKER,
-                    {?TRACKER, start_link, []},
-                    transient, infinity, supervisor, [?TRACKER]},
+    Hash_specs = {?HASH,
+                  {?HASH, start_link, []},
+                  transient, infinity, supervisor, [?HASH]},
 
-    TorrentSpecs = {?TORRENT,
-                    {?TORRENT, start_link, []},
-                    transient, infinity, supervisor, [?TORRENT]},
+    Tracker_specs = {?TRACKER,
+                     {?TRACKER, start_link, []},
+                     transient, infinity, supervisor, [?TRACKER]},
 
-    {ok, {SupFlags, [TrackerSpecs, TorrentSpecs]}}.
+    Torrent_specs = {?TORRENT,
+                     {?TORRENT, start_link, []},
+                     transient, infinity, supervisor, [?TORRENT]},
+
+    {ok, {Sup_flags, [Hash_specs,
+                      Tracker_specs,
+                      Torrent_specs]}}.

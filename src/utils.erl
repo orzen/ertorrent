@@ -2,8 +2,26 @@
 
 -export([read_term_from_file/1,
          write_term_to_file/2,
-         is_magnet/1,
-         encode_hash/1]).
+         encode_hash/1,
+         unique_id/0]).
+
+ensure_file_entries({files, multiple, Name, Files}, Location) ->
+    Dir = Location ++ '/' ++ Name,
+
+    % Make sure that the torrent folder exists
+    case ensure_dir(Dir) of 
+        ok ->
+            % Create files
+            foreach(fun(X) ->
+                        {ok, Fd} = file:open(Dir ++ '/' ++ X, [write]),
+                        % TODO add support for allocate
+                        % file:allocate(Fd, Offset, Length)
+                        file:close(Fd)
+                    end, Files),
+    end;
+ensure_file_entries({files, single, Name, [File]}, Location) ->
+    {ok, Fd} = file:open(Dir ++ '/' ++ Name),
+    file:close(Fd).
 
 read_term_from_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
@@ -29,8 +47,5 @@ encode_hash(Info_bencoded) ->
     Upper_format = string:to_upper(Percent_format),
     {ok, Upper_format}.
 
-is_magnet(Str) ->
-    case string:str(Str, "magnet:?") == 1 of
-        true -> true;
-        false -> false
-    end.
+unique_id() ->
+    erlang:phash2({node(), now()}).

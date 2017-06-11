@@ -13,6 +13,7 @@
 
 -define(SERVER, ?MODULE).
 -define(TORRENTS_FILENAME, "TEST_FILE").
+-define(TORRENT_SUP, ertorrent_torrent_sup).
 
 -export([start_link/1,
          stop/0,
@@ -30,7 +31,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--record(state, {port, supervisor, torrents=[]}).
+-record(state, {port,
+                torrents=[],
+                torrent_sup}).
 
 add(Metainfo) ->
     gen_server:call(?MODULE, {add, Metainfo}).
@@ -45,6 +48,9 @@ print_list([H|T]) ->
     io:format("~p~n", [Hash]),
     print_list(T).
 
+member_by_info_hash(Info_hash) ->
+    gen_server:call({torrent_srv_member_info_hash, Info_hash}).
+
 %%% Standard client API
 % Args = [Port]
 start_link([Port]) ->
@@ -54,14 +60,14 @@ stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
     gen_server:cast(?MODULE, stop).
 
-%%% Callback module
-init([Port]) ->
+%% Callback module
+init([Port, Torrent_sup]) ->
     case filelib:is_file(?TORRENTS_FILENAME) of
         true ->
             {ok, Torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),
             lists:foreach(
                 fun({Info_hash, Metainfo}) ->
-                    supervisor:start_child(ertorrent_torrent_sup,
+                    supervisor:start_child(Torrent_sup,
                                            [list_to_atom(Info_hash),
                                             [Info_hash, Metainfo,
                                              Port]])
@@ -70,44 +76,23 @@ init([Port]) ->
         false ->
             Torrents = []
     end,
-    {ok, #state{port=Port, torrents=Torrents}}.
+    {ok, #state{port=Port,
+                torrents=Torrents,
+                torrent_sup=Torrent_sup}}.
 
 %% Synchronous
-handle_call({start}, _From, _State) ->
+handle_call({torrent_srv_member_info_hash, Info_hash}, State) ->
+    lists:keymember(Info_hash, 1, State).
+
+%% Asynchronous
+handle_cast({start}, _From, _State) ->
     io:format("~p starting~n",[?MODULE]),
     {ok};
-handle_call({add, Metainfo}, _From, State) ->
-    Name = metainfo:get_info_value(<<"name">>, Metainfo),
 
-    % Creating info hash
-    {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
-    {ok, Info_encoded} = bencode:encode(Info),
-    {ok, Info_hash} = utils:encode_hash(Info_encoded),
-
-    % Adding torrent tuple to the bookkeeping list
-    Torrent = {Info_hash, Metainfo},
-    Current_torrents = State#state.torrents,
-    New_state = State#state{torrents = [Torrent|Current_torrents]},
-
-    % Write the updated bookkeeping list to file
-    utils:write_term_to_file(?TORRENTS_FILENAME, New_state#state.torrents),
-
-    Atom_hash = list_to_atom(Info_hash),
-    Ret = supervisor:start_child(ertorrent_torrent_sup,
-                                 [Atom_hash,
-                                  [Info_hash,
-                                   Metainfo,
-                                   New_state#state.port
-                                  ]
-                                 ]
-                                ),
-
-    {reply, Info_hash, New_state};
-
-handle_call({remove}, _From, _State) ->
+handle_cast({remove}, _From, _State) ->
     io:format("~p remove~n",[?MODULE]),
     {ok};
-handle_call({list}, _From, State) ->
+handle_cast({list}, _From, State) ->
     io:format("~p list~n",[?MODULE]),
 
     Torrents = State#state.torrents,
@@ -115,12 +100,63 @@ handle_call({list}, _From, State) ->
     print_list(Torrents),
 
     {reply, ok, State}.
-
-%% Asynchronous
 handle_cast(stop, State) ->
     {stop, normal, State}.
 
+handle_cast({torrent_srv_add_torrent, Metainfo}, _From, State) ->
+    Name = metainfo:get_info_value(<<"name">>, Metainfo),
+
+    % Creating info hash
+    {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
+    {ok, Info_encoded} = bencode:encode(Info),
+    {ok, Info_hash} = utils:encode_hash(Info_encoded),
+
+    % Preparing torrent tuple
+    Torrent = {Info_hash, Metainfo},
+    Current_torrents = State#state.torrents,
+
+    Atom_hash = list_to_atom(Info_hash),
+    case supervisor:start_child(State#state.torrent_sup,
+                                [Atom_hash,
+                                 [Info_hash,
+                                  Metainfo,
+                                  New_state#state.port
+                                 ]
+                                ]
+                               ) of
+        {ok, Child} -> ?INTERFACE ! {reply, ok};
+            % Adding torrent tuple to the bookkeeping list
+            New_state = State#state{torrents = [Torrent|Current_torrents]},
+
+            % Write the updated bookkeeping list to file
+            utils:write_term_to_file(?TORRENTS_FILENAME, New_state#state.torrents),
+        {error, Reason} ->
+            New_state = State,
+
+            case Reason of
+                already_present ->
+                    ?INTERFACE ! {reply, {not_ok, already_present}};
+                {already_present, _Child} ->
+                    ?INTERFACE ! {reply, {not_ok, already_present}};
+                Reason ->
+                    ?INTERFACE !{reply, {not_ok, unexpected, Reason}}
+            end
+    end,
+
+    {reply, Info_hash, New_state};
+
 %% Do work here
+handle_info({peer_s_read_piece, From, Info_hash, Piece_idx}, State) ->
+    case lists:keymember(Info_hash, 1, State#state.torrents) of
+        true ->
+            Info_hash ! {torrent_s_read_piece,
+                         From,
+                         Info_hash,
+                         Piece_idx};
+        false ->
+            ?WARNING("trying to read piece for an nonexisting torrent")
+    end,
+    {noreply, State}
 handle_info({'EXIT', _ParentPid, shutdown}, State) ->
     {stop, shutdown, State};
 handle_info(_Info, _State) ->
