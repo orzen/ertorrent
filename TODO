@@ -1,0 +1,45 @@
+TODO:
+=======
+
+Questions:
+- Should cache be handled centralized or distributed?
+- If I have a supervision tree a supervisor, supervising second supervisor and
+  a gen_server. How would I go about to give, the PID of the second supervisor,
+  as an argument to the gen_server?
+- Are the three steps a sufficient boot separation? Check ertorrent_app.erl
+
+General:
+- Merge the peer_in_sup with the peer_ssup
+- Read up on OS-specifics http://erlang.org/doc/man/os.html#type-0
+- Figure out start up order. settings sup.tree needs to start up first so that
+  torrent_ssup can get port settings.
+- Create peer_ssup
+- Create file_ssup
+- Investigate of there should be a sup for hash otherwise rename sup -> ssup
+- Investigate of there should be a sup for tracker otherwise rename sup -> ssup
+- Update ertorrent_sup with new ssups
+- Move knowledge about the incoming peer port form the torrent sup.tree. It was
+  originially placed there, so that the torrent_worker could embed it into the
+  tracker messages. The torrent_worker should only send the tracker_worker with
+  the torrent relevant parameters. The tracker tree and the peer tree should
+  know about this port.
+- Determine a file format for cached metainfo (e.g. JSON, kept in a seperate
+  file?)
+- Determine a term format for cached metainfo (e.g. {metainfo_cache,
+  [MetainfoX, MetainfoY]} ?)
+- Separate the tracker dispatcher from the http dispatcher, to create a generic
+  http_dispatcher.
+- In order to run on a distributed system, the ssup have to start the srv which
+  in return calls start_child to the ssup to get the PID of sup.
+
+tracker_srv:
+- Add incoming peer port
+
+torrent_worker:
+- During init, request a tracker worker
+- Remove port from announce_trigger()
+
+torrent_srv:
+- Add functionality to pause
+- Add functionality to remove torrents NOTE: Remember to remove it from the
+  cache and re-write the cache file.

@@ -1,0 +1,50 @@
+-module(peer_protocol_messages).
+
+new_handshake() ->
+    Message = "19Bittorrent Protocol".
+new_message() ->
+    <<Length_prefix:4/big-integer-unit:8,
+      Message_id:1/big-integer-unit:8>>.
+
+new_keep_alive() ->
+    {ok}.
+
+%%No payload
+new_choke() ->
+    Id = 0,
+    {ok}.
+
+%%No payload
+new_unchoke() ->
+    Id = 1,
+    {ok}.
+
+%%No payload
+new_interested() ->
+    Id = 2,
+    {ok}.
+
+%%No payload
+new_not_interested() ->
+    Id = 3,
+    {ok}.
+
+new_have() ->
+    Id = 4,
+    {ok}.
+
+new_bitfield() ->
+    Id = 5,
+    {ok}.
+
+new_request() ->
+    Id = 6,
+    {ok}.
+
+new_piece() ->
+    Id = 7,
+    {ok}.
+
+new_cancel() ->
+    Id = 8,
+    {ok}.
