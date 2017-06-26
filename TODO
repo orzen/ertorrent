@@ -31,6 +31,9 @@ General:
   http_dispatcher.
 - In order to run on a distributed system, the ssup have to start the srv which
   in return calls start_child to the ssup to get the PID of sup.
+- Look over how the peer sockets are being set up. It could be an idea to use
+  the IP address as ID for the peer_workers but how to we retreive the address
+  if someone else is establishing the connection?
 
 tracker_srv:
 - Add incoming peer port
@@ -43,3 +46,13 @@ torrent_srv:
 - Add functionality to pause
 - Add functionality to remove torrents NOTE: Remember to remove it from the
   cache and re-write the cache file.
+
+peer_worker:
+- Add serialization of Data in handle_info({peer_srv_piece, ...})
+- handle_info({peer_srv_piece, ...}) fix return value
+- Check difference between handle_info({peer_srv_piece, Data} and
+  handle_info({peer_srv_piece, _Index, _Hash, Data}, State).
+- Look up if it's necessary to verify the Socket in messages from gen_tcp, e.g.
+  handle_info({tcp, Socket, Data})
+- handle_info({tcp, _S, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
+  Peer_id:160>>}, State), add verification of the Peer_id
