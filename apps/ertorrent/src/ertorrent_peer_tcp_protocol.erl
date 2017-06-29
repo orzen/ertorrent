@@ -61,11 +61,11 @@ msg_bitfield(Bitfield_length, Bitfield) ->
     Length = 1 + Bitfield_length,
     {ok, <<Length:32, ?BITFIELD, Bitfield>>}.
 
-msg_request(Length, Index, Begin) ->
+msg_request(Index, Begin, Length) ->
     {ok, <<13:32, ?REQUEST, Index:32, Begin:32, Length:32>>}.
 
-msg_piece(Piece_length, Index, Begin, Block) ->
-    Length = 9 + Piece_length,
+msg_piece(Block_size, Index, Begin, Block) ->
+    Length = 9 + Block_size,
     {ok, <<Length:32, ?PIECE, Index:32, Begin:32, Block:32>>}.
 
 msg_cancel(Index, Begin, Length) ->

@@ -147,7 +147,7 @@ handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Peer_id, Socket, 
 
                     {noreply, New_state};
                 {ok, Peer_pid, Info} ->
-                    INFO("recv unhandled data 'Info': " ++ Info)
+                    ?INFO("recv unhandled data 'Info': " ++ Info)
 
                     Peers = State#state.peers,
 
@@ -161,7 +161,7 @@ handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Peer_id, Socket, 
 
                     {noreply, New_state};
                 {error, Reason} ->
-                    ERROR("peer_srv failed to spawn a peer_worker, check the peer_sup. reason: " ++ Reason),
+                    ?ERROR("peer_srv failed to spawn a peer_worker, check the peer_sup. reason: " ++ Reason),
 
                     % TODO if there's an issue with the peer_sup being
                     % unresponsive. An alternative could be to message the
@@ -171,7 +171,7 @@ handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Peer_id, Socket, 
                     {noreply, State}
             end,
         {error, Reason} ->
-            DEBUG("peer_srv failed to establish connection with peer: " ++
+            ?DEBUG("peer_srv failed to establish connection with peer: " ++
                   Address ++ ":" ++ Port ++ ", reason: " ++ Reason),
 
             State#state.torrent_pid ! {peer_srv, requesting_peer},

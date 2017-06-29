@@ -10,13 +10,6 @@
 
 -behaviour(gen_server).
 
--include("ertorrent_log.hrl").
--include("ertorrent_peer_tcp_message_ids.hrl").
-
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
--endif.
-
 -export([reset_rx_keep_alive/1,
          reset_tx_keep_alive/1,
          send_keep_alive/1,
@@ -30,14 +23,23 @@
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         terminate/2,
-         code_change/3]).
+         terminate/2]).
+
+-include("ertorrent_log.hrl").
+-include("ertorrent_peer_tcp_message_ids.hrl").
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
 
 -record(peer_state, {choked,
                      interested}).
 
--record(state, {id, % peer_worker_id
+-record(state, {cached_requests::list(),
+                id, % peer_worker_id
+                incoming_piece::binary(),
                 incoming_piece_blocks::list(),
+                incoming_piece_hash,
                 incoming_piece_index,
                 incoming_piece_downloaded_size,
                 incoming_piece_total_size,
@@ -48,14 +50,16 @@
                 keep_alive_rx_ref,
                 % Timer reference for when keep alive message should be sent
                 keep_alive_tx_ref,
-                outgoing_piece_data::binary(),
+                % Piece queue is a list containing tuples with information for each piece
+                % {index, hash, data}
+                % outgoing_piece_queue will hold all the requested pieces until
+                % they're completely transfered
+                outgoing_piece_queue::list(),
                 peer_bitfield,
                 peer_id,
                 peer_srv_pid,
                 peer_state,
-                piece_hash,
                 received_handshake::boolean(),
-                request_queue::list(),
                 socket,
                 state_incoming,
                 state_outgoing,
@@ -139,7 +143,7 @@ complete_piece(State) ->
 
     State#state.peer_srv_pid ! {peer_worker_piece_ready,
                                 State#state.torrent_pid,
-                                State#state.piece_hash,
+                                State#state.incoming_piece_hash,
                                 Piece},
 
     [{New_piece_index,
@@ -151,7 +155,7 @@ complete_piece(State) ->
                             incoming_piece_index = New_piece_index,
                             incoming_piece_queue = New_piece_queue,
                             incoming_piece_total_size = New_piece_total_size,
-                            piece_hash = New_piece_hash},
+                            incoming_piece_hash = New_piece_hash},
 
     {ok, New_state}.
 
@@ -173,7 +177,9 @@ terminate(Reason, State) ->
 
     ok = gen_tcp:close(State#state.socket),
 
-    ?PEER_SRV ! {peer_w_terminate, State#state.id, State#state.piece_hash},
+    ?PEER_SRV ! {peer_w_terminate,
+                 State#state.id,
+                 State#state.incoming_piece_hash},
 
     ok.
 
@@ -206,12 +212,14 @@ handle_cast({activate}, State) ->
     end;
 handle_cast(stop, State) ->
     {stop, normal, State};
-handle_cast(_Request, State) ->
+handle_cast(Request, State) ->
+    ?WARNING("unhandled request: " ++ Request),
     {noreply, State}.
 
 %% Timeout for when a keep alive message was expected from the peer
 handle_info({keep_alive_rx_timeout}, State) ->
     {stop, peer_worker_timed_out, State};
+
 %% Time to send another keep alive before the peer mark us as inactive
 handle_info({keep_alive_tx_timeout}, State) ->
     case send_keep_alive(State#state.socket) of
@@ -222,17 +230,58 @@ handle_info({keep_alive_tx_timeout}, State) ->
             {stop, Reason, State}
     end;
 
-handle_info({peer_srv_piece, _Index, _Hash, Data}, State) ->
-    case gen_tcp:send(State#state.socket, Data) of
-        ok ->
-            0;
-        {error, _Reason} ->
-            1
-    end,
-    {noreply, State};
+%% Async. response when requested a new piece to transmit. Answer the cached
+%% request that triggered a piece to be retrieved from disk.
+handle_info({peer_srv_tx_piece, Index, Hash, Data}, State) ->
+    Outgoing_pieces = [{Index, Hash, Data}| State#state.outgoing_piece_queue],
 
-handle_info({peer_srv_piece, _Data}, State) ->
-    {noreply, State};
+    % Compile a list of pending requests that match the received piece
+    Pending_requests = lists:filter(
+                           fun({request, R_index, _R_begin, _R_length}) ->
+                               case Index == R_index of
+                                   true -> true;
+                                   false -> false
+                               end
+                           end, State#state.cached_requests
+                       ),
+
+    % Respond to the pending requests and compile a list with the served
+    % requests
+    Served_requests = lists:foldl(
+                          fun(Request, Acc) ->
+                              {request, R_index, R_begin, R_length} = Request,
+
+                              % TODO figure out how to handle the last block of a piece
+                              <<_B_begin:R_begin, Block:R_length, _Rest/binary>> = Data,
+
+                              Msg = ?PEER_PROTOCOL:msg_piece(R_length, R_index, R_begin, Block),
+
+                              case gen_tcp:send(State#state.socket, Msg) of
+                                  ok ->
+                                      [Request| Acc];
+                                  {error, Reason} ->
+                                      ?WARNING("failed to serve a pending request: " ++ Reason),
+                                      Acc
+                              end
+                          end, [], Pending_requests
+                      ),
+
+    % Filter out the served requests
+    Remaining_requests = lists:filter(
+                            fun(Request) ->
+                                case Request of
+                                    {request, _R_index, _R_begin, _R_length} ->
+                                        false;
+                                    _ ->
+                                        true
+                                end
+                            end, Served_requests
+                         ),
+
+    New_state = State#state{cached_requests = Remaining_requests,
+                            outgoing_piece_queue = Outgoing_pieces},
+
+    {noreply, New_state};
 
 %% Messages from gen_tcp
 % TODO:
@@ -247,28 +296,38 @@ handle_info({tcp, _S, <<?HAVE, Piece_num:32/big-integer>>}, State) ->
     New_bitfield = ?BITFIELD_UTILS:set_bit(Piece_num, 1, State#state.peer_bitfield),
     New_state = State#state{peer_bitfield = New_bitfield},
 
-    State#state.peer_srv_pid ! {peer_worker_bitfield_update, New_bitfield},
+    State#state.peer_srv_pid ! {peer_w_bitfield_update, New_bitfield},
     % TODO if we're sending a piece that is announced in a HAVE message, should
     % we cancel the tranmission or ignore it and wait for a CANCEL message?
 
     {noreply, New_state};
-handle_info({tcp, _S, <<?REQUEST, Index:32/big, Begin:32/big, Len:32/big>>}, State) ->
-    case State#state.outgoing_piece_data == <<>> of
-        true ->
-            % If there's no cached piece, tell the peer_srv and wait for a
-            % piece from the torrent_worker.
-            State#state.peer_srv_pid ! {peer_worker_piece_request, self(), Index};
-        false ->
-            <<Begin, Bin:Len, _Rest/binary>> = State#state.outgoing_piece_data,
+handle_info({tcp, _S, <<?REQUEST, Index:32/big, Begin:32/big, Length:32/big>>}, State) ->
+    case lists:keyfind(Index, 1, State#state.outgoing_piece_queue) of
+        {Index, _Hash, Data} ->
+            <<Begin, Block:Length, _Rest/binary>> = Data,
 
-            case gen_tcp:send(State#state.socket, Bin) of
-                ok -> 1;
+            Msg = ?PEER_PROTOCOL:msg_piece(Length, Index, Begin, Block),
+
+            % TODO figure out a smart way to detect when we can clear out
+            % cached pieces
+            case gen_tcp:send(State#state.socket, Msg) of
                 {error, Reason} ->
                     ?WARNING("failed to send a REQUEST response: " ++ Reason)
-            end
+            end,
+
+            New_state = State;
+        false ->
+            % If the requested piece ain't cached, send a request to read the
+            % piece form disk and meanwhile cache the request.
+            Cached_requests = [{request, Index, Begin, Length}|
+                               State#state.cached_requests],
+
+            State#state.peer_srv_pid ! {peer_w_piece_request, self(), Index},
+
+            New_state = State#state{cached_requests=Cached_requests}
     end,
 
-    {noreply, State};
+    {noreply, New_state};
 handle_info({tcp, _S, <<?PIECE, Index:32/big-integer,
                                         Begin:32/big-integer, Data/binary>>},
             State) ->
@@ -336,7 +395,10 @@ handle_info({tcp, _S, Data}, State) ->
     ?WARNING("unhandled peer[" ++ State#state.id ++"], message: " ++ Data),
     {stop, peer_unhandled_message, State};
 handle_info({tcp_closed, _S}, State) ->
-    {stop, peer_connection_closed, State}.
+    {stop, peer_connection_closed, State};
+handle_info(Message, State) ->
+    ?WARNING("unhandled message: " ++ Message),
+    {noreply, State}.
 
 %% Messages from the torrent worker
 % handle_info({torrent_worker_choke}, State) ->
@@ -344,5 +406,3 @@ handle_info({tcp_closed, _S}, State) ->
 % handle_info({torrent_worker_unchoke}, State) ->
 %     {ok, Msg} = ?PEER_PROTOCOL:msg_unchoke().
 
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
