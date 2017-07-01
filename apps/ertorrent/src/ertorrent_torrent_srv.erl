@@ -11,14 +11,14 @@
 
 -include("ertorrent_log.hrl").
 
--define(SERVER, ?MODULE).
 -define(TORRENTS_FILENAME, "TEST_FILE").
 -define(TORRENT_SUP, ertorrent_torrent_sup).
 
 -export([start_link/1,
          stop/0,
          add/1,
-         list/1]).
+         list/1,
+         member_by_info_hash/1]).
 
 -export([init/1,
          handle_call/3,
@@ -53,84 +53,64 @@ member_by_info_hash(Info_hash) ->
 %%% Standard client API
 %%% Cached_metainfo list with metainfo
 start_link(Cached_metainfo) ->
-    gen_server:start_link({local, ?SERVER},
+    gen_server:start_link({local, ?MODULE},
                           ?MODULE,
                           [{metainfo_cache, Cached_metainfo}],
-                          []).
-
-start_link(Torrent_sup, Cached_metainfo) ->
-    gen_server:start_link({local, ?SERVER},
-                          ?MODULE,
-                          [{torrent_sup, Torrent_sup},
-                           {metainfo_cache},Cached_metainfo}],
                           []).
 
 stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
     gen_server:cast(?MODULE, stop).
 
-spawn_workers_from_cache(Cached_torrents) ->
+spawn_workers_from_cache(Torrent_sup, Cached_torrents) ->
     lists:foreach(
         fun({Info_hash, Metainfo}) ->
             supervisor:start_child(Torrent_sup,
                                    [list_to_atom(Info_hash),
                                     [Info_hash, Metainfo]])
         end,
-        Cached_torrents);
-
-
+        Cached_torrents).
 
 %% Callback module
 
 %%% Init for development
-init([{metainfo_cache, Cached_metainfo}]) ->
+init({metainfo_cache, _Cached_metainfo}) ->
     case filelib:is_file(?TORRENTS_FILENAME) of
         true ->
-            {ok, Cached_torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),
-            spawn_workers_from_cache(Cached_torrents);
+            {ok, Torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),
+            spawn_workers_from_cache(?TORRENT_SUP, Torrents);
         false ->
             Torrents = []
     end,
     {ok, #state{torrents=Torrents,
-                torrent_sup=?TORRENT_SUP}};
-%%% Init for user version
-init([{torrent_sup, Torrent_sup}, {metainfo_cache, Cached_metainfo}]) ->
-    case filelib:is_file(?TORRENTS_FILENAME) of
-        true ->
-            {ok, Cached_torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),
-            spawn_workers_from_cache(Cached_torrents);
-        false ->
-            Torrents = []
-    end,
-    {ok, #state{torrents=Torrents,
-                torrent_sup=Torrent_sup}}.
+                torrent_sup=?TORRENT_SUP}}.
 
 %% Synchronous
-handle_call({torrent_srv_member_info_hash, Info_hash}, State) ->
-    lists:keymember(Info_hash, 1, State).
-
-%% Asynchronous
-handle_cast({start}, _From, _State) ->
-    io:format("~p starting~n",[?MODULE]),
-    {ok};
-
-handle_cast({remove}, _From, _State) ->
-    io:format("~p remove~n",[?MODULE]),
-    {ok};
-handle_cast({list}, _From, State) ->
-    io:format("~p list~n",[?MODULE]),
+handle_call({torrent_srv_member_info_hash, Info_hash}, _From, State) ->
+    Member = lists:keymember(Info_hash, 1, State),
+    {reply, Member, State};
+handle_call({list}, _From, State) ->
+    io:format("~p list~n", [?MODULE]),
 
     Torrents = State#state.torrents,
 
     print_list(Torrents),
 
-    {reply, ok, State}.
-handle_cast(stop, State) ->
-    {stop, normal, State}.
+    {reply, Torrents, State}.
 
-handle_cast({torrent_srv_add_torrent, Metainfo}, _From, State) ->
-    Name = metainfo:get_info_value(<<"name">>, Metainfo),
+%% Asynchronous
 
+
+%% @doc API to start added torrents
+handle_cast({start}, State) ->
+    io:format("~p starting~n",[?MODULE]),
+    {noreply, State};
+
+handle_cast({remove}, State) ->
+    io:format("~p remove~n",[?MODULE]),
+    {noreply, State};
+
+handle_cast({torrent_srv_add_torrent, From, Metainfo}, State) ->
     % Creating info hash
     {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
     {ok, Info_encoded} = bencode:encode(Info),
@@ -144,31 +124,33 @@ handle_cast({torrent_srv_add_torrent, Metainfo}, _From, State) ->
     case supervisor:start_child(State#state.torrent_sup,
                                 [Atom_hash,
                                  [Info_hash,
-                                  Metainfo,
-                                  New_state#state.port
-                                 ]
+                                  Metainfo]
                                 ]
                                ) of
-        {ok, Child} -> ?INTERFACE ! {reply, ok};
+        {ok, _Child} ->
             % Adding torrent tuple to the bookkeeping list
             New_state = State#state{torrents = [Torrent|Current_torrents]},
 
             % Write the updated bookkeeping list to file
             utils:write_term_to_file(?TORRENTS_FILENAME, New_state#state.torrents),
+
+            From ! {reply, ok};
         {error, Reason} ->
             New_state = State,
 
             case Reason of
                 already_present ->
-                    ?INTERFACE ! {reply, {not_ok, already_present}};
+                    From ! {reply, {not_ok, already_present}};
                 {already_present, _Child} ->
-                    ?INTERFACE ! {reply, {not_ok, already_present}};
+                    From ! {reply, {not_ok, already_present}};
                 Reason ->
-                    ?INTERFACE !{reply, {not_ok, unexpected, Reason}}
+                    From ! {reply, {not_ok, unexpected, Reason}}
             end
     end,
 
     {reply, Info_hash, New_state};
+handle_cast(stop, State) ->
+    {stop, normal, State}.
 
 %% Do work here
 handle_info({peer_s_read_piece, From, Info_hash, Piece_idx}, State) ->
@@ -181,11 +163,12 @@ handle_info({peer_s_read_piece, From, Info_hash, Piece_idx}, State) ->
         false ->
             ?WARNING("trying to read piece for an nonexisting torrent")
     end,
-    {noreply, State}
+    {noreply, State};
 handle_info({'EXIT', _ParentPid, shutdown}, State) ->
     {stop, shutdown, State};
-handle_info(_Info, _State) ->
-    ok.
+handle_info(Info, State) ->
+    ?WARNING("unhandled info request: " ++ Info),
+    {noreply, State}.
 
 terminate(Reason, _State) ->
     io:format("~p: going down, Reason: ~p~n", [?MODULE, Reason]),

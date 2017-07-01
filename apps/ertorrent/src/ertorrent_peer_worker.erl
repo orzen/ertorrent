@@ -36,6 +36,7 @@
                      interested}).
 
 -record(state, {cached_requests::list(),
+                dht_port,
                 id, % peer_worker_id
                 incoming_piece::binary(),
                 incoming_piece_blocks::list(),
@@ -141,6 +142,7 @@ complete_piece(State) ->
     Blocks = State#state.incoming_piece_blocks,
     Piece = blocks_to_piece(Blocks),
 
+    % Announce the finished piece to the other subsystems via the peer_srv
     State#state.peer_srv_pid ! {peer_worker_piece_ready,
                                 State#state.torrent_pid,
                                 State#state.incoming_piece_hash,
@@ -251,7 +253,9 @@ handle_info({peer_srv_tx_piece, Index, Hash, Data}, State) ->
                           fun(Request, Acc) ->
                               {request, R_index, R_begin, R_length} = Request,
 
-                              % TODO figure out how to handle the last block of a piece
+                              % TODO figure out how to determine when we have
+                              % reached the last block of a piece in order to
+                              % discard the cached data.
                               <<_B_begin:R_begin, Block:R_length, _Rest/binary>> = Data,
 
                               Msg = ?PEER_PROTOCOL:msg_piece(R_length, R_index, R_begin, Block),
@@ -286,19 +290,26 @@ handle_info({peer_srv_tx_piece, Index, Hash, Data}, State) ->
 %% Messages from gen_tcp
 % TODO:
 % - Implement the missing fast extension
+
+%% @doc Handling incoming peer handshaked.
 handle_info({tcp, _S, <<>>}, State) ->
     New_keep_alive_rx_ref = reset_rx_keep_alive(State#state.keep_alive_rx_ref),
 
     New_state = State#state{keep_alive_rx_ref=New_keep_alive_rx_ref},
 
     {noreply, New_state};
-handle_info({tcp, _S, <<?HAVE, Piece_num:32/big-integer>>}, State) ->
-    New_bitfield = ?BITFIELD_UTILS:set_bit(Piece_num, 1, State#state.peer_bitfield),
-    New_state = State#state{peer_bitfield = New_bitfield},
+handle_info({tcp, _S, <<?HAVE, Piece_idx:32/big-integer>>}, State) ->
+    New_bitfield = ?BITFIELD_UTILS:set_bit(Piece_idx, 1, State#state.peer_bitfield),
 
     State#state.peer_srv_pid ! {peer_w_bitfield_update, New_bitfield},
     % TODO if we're sending a piece that is announced in a HAVE message, should
     % we cancel the tranmission or ignore it and wait for a CANCEL message?
+
+    % Removing the cached piece
+    Outgoing_pieces = lists:keydelete(Piece_idx, 1, State#state.outgoing_piece_queue),
+
+    New_state = State#state{outgoing_piece_queue = Outgoing_pieces,
+                            peer_bitfield = New_bitfield},
 
     {noreply, New_state};
 handle_info({tcp, _S, <<?REQUEST, Index:32/big, Begin:32/big, Length:32/big>>}, State) ->
@@ -355,22 +366,69 @@ handle_info({tcp, _S, <<?PIECE, Index:32/big-integer,
     end,
 
     {noreply, New_state};
+
+% TODO determine if we should clear the request buffer when receiving choked?
 handle_info({tcp, _S, <<?CHOKE>>}, State) ->
-    State#state.peer_srv_pid ! {peer_worker_choke},
-    {noreply, State};
+    % Inform the other subsystems that this peer is choked
+    % TODO I am adding this for the future if we want to display this in any way
+    State#state.peer_srv_pid ! {peer_w_choke, State#state.id},
+
+    % Updating the peer state
+    New_peer_state = State#state.peer_state#peer_state{choked = true},
+    New_state = State#state{peer_state = New_peer_state},
+
+    {noreply, New_state};
 handle_info({tcp, _S, <<?UNCHOKE>>}, State) ->
-    {unchoke},
-    {noreply, State};
+    State#state.peer_srv_pid ! {peer_w_unchoke, State#state.id},
+
+    % Updating the peer state
+    New_peer_state = State#state.peer_state#peer_state{choked = false},
+    New_state = State#state{peer_state = New_peer_state},
+
+    {noreply, New_state};
 handle_info({tcp, _S, <<?INTERESTED>>}, State) ->
-    {interested},
-    {noreply, State};
+    State#state.peer_srv_pid ! {peer_w_interested, State#state.id},
+
+    % Updating the peer state
+    New_peer_state = State#state.peer_state#peer_state{interested = true},
+    New_state = State#state{peer_state = New_peer_state},
+
+    {noreply, New_state};
+% TODO figure out how to handle not interested
 handle_info({tcp, _S, <<?NOT_INTERESTED>>}, State) ->
-    {not_interested},
-    {noreply, State};
-handle_info({tcp, _S, <<?CANCEL, Index:32/big, Begin:32/big,
-                                        Len:32/big>>}, State) ->
-    {cancel, Index, Begin, Len},
-    {noreply, State};
+    State#state.peer_srv_pid ! {peer_w_not_interested, State#state.id},
+
+    % Updating the peer state
+    New_peer_state = State#state.peer_state#peer_state{interested = false},
+    New_state = State#state{peer_state = New_peer_state},
+
+    {noreply, New_state};
+handle_info({tcp, _S, <<?CANCEL, Index:32/big, Begin:32/big, Len:32/big>>},
+            State) ->
+    % Remove the buffered request and possible duplicates
+    New_buffered_requests = lists:filter(
+                                fun(X) ->
+                                    case X of
+                                        {request, Index, Begin, Len} -> false;
+                                        _ -> true
+                                    end
+                                end,
+                                State#state.cached_requests
+                            ),
+
+    % Check if there's any remaining requests for the same piece, otherwise
+    % remove the piece from the cache.
+    case lists:keyfind(Index, 2, New_buffered_requests) of
+        false ->
+            New_tx_pieces = lists:keydelete(Index, 1,
+                                            State#state.outgoing_piece_queue);
+        _ -> New_tx_pieces = State#state.outgoing_piece_queue
+    end,
+
+    New_state = State#state{cached_requests = New_buffered_requests,
+                            outgoing_piece_queue = New_tx_pieces},
+
+    {noreply, New_state};
 handle_info({tcp, _S, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
                         _Peer_id:160>>}, State) ->
     % TODO add validation of Peer_id
@@ -387,22 +445,16 @@ handle_info({tcp, _S, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
     end;
 
 handle_info({tcp, _S, <<?BITFIELD, Bitfield/binary>>}, State) ->
-    ?INFO("peer[" ++ State#state.id ++ "] received bitfield " ++ Bitfield),
+    ?INFO("peer[" ++ State#state.id ++ "] received bitfield: " ++ Bitfield),
+
+    State#state.peer_srv_pid ! {peer_w_bitfield, Bitfield},
+
     {noreply, State};
-handle_info({tcp, _S, <<?PORT, _Port:16/big>>}, State) ->
-    {noreply, State};
-handle_info({tcp, _S, Data}, State) ->
-    ?WARNING("unhandled peer[" ++ State#state.id ++"], message: " ++ Data),
-    {stop, peer_unhandled_message, State};
+handle_info({tcp, _S, <<?PORT, Port:16/big>>}, State) ->
+    New_state = State#state{dht_port = Port},
+    {noreply, New_state};
 handle_info({tcp_closed, _S}, State) ->
     {stop, peer_connection_closed, State};
 handle_info(Message, State) ->
-    ?WARNING("unhandled message: " ++ Message),
-    {noreply, State}.
-
-%% Messages from the torrent worker
-% handle_info({torrent_worker_choke}, State) ->
-%     {ok, Msg} = ?PEER_PROTOCOL:msg_choke();
-% handle_info({torrent_worker_unchoke}, State) ->
-%     {ok, Msg} = ?PEER_PROTOCOL:msg_unchoke().
-
+    ?WARNING("peer[" ++ State#state.id ++ "] an invalid request: " ++ Message),
+    {stop, peer_unhandled_message, State}.

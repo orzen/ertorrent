@@ -2,19 +2,23 @@
 
 -behaviour(gen_server).
 
+-export([pread/3,
+         start_link/0,
+         stop/0]).
+
 -export([init/1,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         terminate/2,
-         code_change/3]).
+         terminate/2]).
 
--record(state, {workers=[]}).
+-record(state, {disks::list(),
+                workers::list()}).
 
 -define(FILE_SUP, ertorrent_file_sup).
 
-pread(From, File, Offset) ->
-    gen_server:cast(?MODULE, {pread, {self(), Worker}, File, Offset}).
+pread(Info_hash, File, Offset) ->
+    gen_server:cast(?MODULE, {pread, self(), Info_hash, File, Offset}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -26,9 +30,9 @@ init([]) ->
     ok = application:start(sasl),
     ok = application:start(os_mon),
 
-    Mount_list = disksup:get_disk_data(),
+    Disks = disksup:get_disk_data(),
 
-    {ok, #state{}}.
+    {ok, #state{disks = Disks}}.
 
 terminate(_Reason, _State) ->
     ok = application:stop(os_mon),
@@ -50,10 +54,10 @@ handle_cast({pread, From, Info_hash, File, Offset}, State) ->
     end,
 
     Worker ! {file_s_pread_req, From, File, Offset},
+
+    New_state = State#state{workers = New_workers},
+
+    {noreply, New_state}.
+
+handle_info({file_w_pread_resp, _From, _File, _Offset, _Data}, State) ->
     {noreply, State}.
-
-handle_info({file_w_pread_resp, From, File, Offset, Data}, State) ->
-    {noreply, State};
-
-code_change(_OldVsn, State, Extra) ->
-    {ok, State}.
