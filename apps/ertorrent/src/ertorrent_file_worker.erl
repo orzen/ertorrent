@@ -1,20 +1,20 @@
 -module(ertorrent_file_worker).
 
+-export([start_link/2,
+         stop/0]).
+
 -export([init/1,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         terminate/2,
-         code_change/3]).
+         terminate/2]).
+
+-include("ertorrent_log.hrl").
 
 % This is NOT a thought through value
 -define(DISPATCH_LIMIT, 10).
 
--record(file, {name::string(),
-               exists::boolean(),
-               fd::io_device()})
-
--record(state, {files=[],
+-record(state, {files::list(),
                 info_hash,
                 uid}).
 
@@ -22,16 +22,6 @@
 % - Keep fds open? Should each worker keep all some fds as state?
 % - May be efficient to download pieces belonging to the same file?
 % - Stack some pieces in memory before doing a pwrite/2 this will increase effciency?
-
-open(Filename, Files) ->
-    case lists:keyfind(Filename, 1, Files) of
-        {Filename, _, Fd} ->
-            {ok, Fd};
-        false ->
-            Exists = filelib:is_file(Filename),
-
-            file:open(Filename, [write]),
-    end,
 
 start_link(Uid, Info_hash) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Uid, Info_hash], []).
@@ -48,34 +38,49 @@ terminate(_Reason, _State) ->
 handle_call(terminate, _From, State) ->
     {stop, normal, ok, State}.
 
-handle_cast({pread, From, Offset, Filename}, State) ->
+handle_cast({pread, From, Filename, Begin, Length}, State) ->
     % TODO check if FD is open before reading or writing
     % TODO add timeout, if the process is inactive for 1-5 min, tear it down
-    case file:pread() of
-        {ok, Data} -> ok;
-        eof -> ok;
-        {error, Reason} -> ok
+    case file:open(Filename, [binary]) of
+        {ok, Fd} ->
+            case file:pread(Fd, Begin, Length) of
+                {ok, Data} ->
+                    From ! {file_w, {pread, Filename, Begin, Length}, Data};
+                eof ->
+                    From ! {file_w_error, {pread, Filename, Begin, Length}, eof};
+                {error, Reason} ->
+                    From ! {file_w_error, {pread, Filename, Begin, Length}, Reason}
+            end;
+        {error, Reason} ->
+            ?WARNING("failed to open file: " ++ Filename ++ ", reason: " ++ Reason),
+            %TODO make sure this goes to the file_srv
+            From ! {file_w_error, {pread, Filename, Begin, Length}, Reason}
     end,
+
     {noreply, State};
 
 handle_cast({pwrite, From, Filename, Offset, Data}, State) ->
-    Exists = filelib:is_file(Filename),
     case file:open(Filename, [write]) of
         {ok, Fd} ->
-            {ok, #state{name=Filename, exists=Exists}};
-        {error, Reason} ->
-            {stop, Reason}
-    end.
-    case file:pwrite(Fd, Offset, Data) of
-        ok ->
-            From ! {piece_written, Filename},
-        {error, Reason} ->
-            From ! {piece_write_error, pwrite, Reason}
-    end;
+            case file:pwrite(Fd, Offset, Data) of
+                ok ->
+                    From ! {file_w, {pwrite, Filename, Offset}};
+                {error, Reason} ->
+                    From ! {file_w_error, {pwrite, Filename, Offset, Data}, Reason}
+            end,
 
-    {noreply, State};
-handle_cast({tag, request}, State) ->
+            New_files = [{Filename, Fd}| State#state.files],
+
+            New_state = State#state{files = New_files},
+
+            {noreply, New_state};
+        {error, Reason} ->
+            {stop, Reason, State}
+    end;
+handle_cast(Req, State) ->
+    ?WARNING("unhandled cast request: " ++ Req),
     {noreply, State}.
 
-code_change(_OldVsn, State, Extra) ->
-    {ok, State}.
+handle_info(Req, State) ->
+    ?WARNING("unhandled info request: " ++ Req),
+    {noreply, State}.

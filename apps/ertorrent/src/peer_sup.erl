@@ -1,2 +1,0 @@
--module(peer_sup).
-

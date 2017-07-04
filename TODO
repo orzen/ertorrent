@@ -38,6 +38,11 @@ General:
 file_srv:
 - Implement handle_info({file_w_pread_resp
 
+file_worker:
+- handle_cast({pread add Fd to the cache
+- In terminate, close all the cached Fds
+- Unify variable naming, Offset/Begin
+
 settings_srv:
 - A setting for peer port
 
@@ -57,6 +62,10 @@ torrent_srv:
 - Add functionality to pause
 - Add functionality to remove torrents NOTE: Remember to remove it from the
   cache and re-write the cache file.
+
+peer_accept:
+- Retreive the port from the settings_srv during init/1
+- Handle Reason in terminate/2
 
 peer_worker:
 - Add serialization of Data in handle_info({peer_srv_piece, ...})

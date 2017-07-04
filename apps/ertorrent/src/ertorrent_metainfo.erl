@@ -1,4 +1,4 @@
--module(metainfo).
+-module(ertorrent_metainfo).
 
 -export([get_value/2,
          get_info_value/2,

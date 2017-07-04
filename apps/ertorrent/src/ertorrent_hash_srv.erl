@@ -12,7 +12,7 @@
          hash_piece_int/3,
          hash_piece_int/4,
          read/6,
-         read_files/2]).
+         read_files/1]).
 
 % gen_server
 -export([init/1,

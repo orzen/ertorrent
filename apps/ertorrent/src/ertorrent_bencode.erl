@@ -1,4 +1,4 @@
--module(bencode).
+-module(ertorrent_bencode).
 
 -export([decode/1,
          encode/1]).

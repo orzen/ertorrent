@@ -5,7 +5,7 @@
 %%% @end
 %%%-------------------------------------------------------------------
 
--module(ertorrent_tracker_dispatcher).
+-module(ertorrent_tracker_http_dispatcher).
 
 -behaviour(gen_server).
 
@@ -36,7 +36,7 @@ announce(Address, Info_hash, Peer_id, Port, Uploaded, Downloaded, Left, Event,
                                            Downloaded,
                                            Left,
                                            Event,
-                                           Compact).
+                                           Compact),
 
     gen_server:call(?MODULE, {announce, Request}).
 
@@ -51,7 +51,7 @@ handle_call({announce, Request}, From, State) ->
     {ok, Request_id} = httpc:request(get, {Request, [{"Accept", "text/plain"}]},
                                     [], [{sync, false}, {headers_as_is, true}]),
 
-    Mapping = [{Request_od, From} | State#state.mapping],
+    Mapping = [{Request_id, From} | State#state.mapping],
 
     {reply, {ok, Request_id}, State#state{mapping=Mapping}}.
 

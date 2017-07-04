@@ -12,9 +12,13 @@ init(_Arg) ->
     MaxRestart = 4,
     MaxTime = 5,
 
-    SupFlags = {one_for_one, MaxRestart, MaxTime},
+    Sup_flags = {one_for_one, MaxRestart, MaxTime},
 
-    {ok, Listen_socket} = gen_tcp:listen(?PORT, [{active, once}, {packet, line}]),
+    {ok, Listen_socket} = gen_tcp:listen(37557, [{active, once}, {packet, line}]),
+
+    Peer_in_specs = {ertorrent_peer_in,
+                     {ertorrent_peer_in, start_link, [Listen_socket]},
+                     transient, 60*1000, worker, [ertorrent_peer_in]},
 
     Peer_sup_specs = {ertorrent_peer_sup,
                       {ertorrent_peer_sup, start_link, []},
@@ -24,4 +28,4 @@ init(_Arg) ->
                       {ertorrent_peer_srv, start_link, [[37555]]},
                       transient, 60*1000, worker, [ertorrent_peer_srv]},
 
-    {ok, {SupFlags,[SupSpecs, SrvSpecs]}}.
+    {ok, {Sup_flags, [Peer_in_specs, Peer_sup_specs, Peer_srv_specs]}}.

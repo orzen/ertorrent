@@ -17,7 +17,7 @@
              ertorrent_hash_srv,
              ertorrent_hash_sup,
              ertorrent_metainfo,
-             ertorrent_peer_in,
+             ertorrent_peer_accept,
              ertorrent_peer_srv,
              ertorrent_peer_ssup,
              ertorrent_peer_sup,
