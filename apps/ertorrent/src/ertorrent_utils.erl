@@ -3,25 +3,25 @@
 -export([read_term_from_file/1,
          write_term_to_file/2,
          encode_hash/1,
-         unique_id/0]).
+         pieces_binary_to_list/1]).
 
-ensure_file_entries({files, multiple, Name, Files}, Location) ->
-    Dir = Location ++ '/' ++ Name,
-
-    % Make sure that the torrent folder exists
-    case ensure_dir(Dir) of
-        ok ->
-            % Create files
-            foreach(fun(X) ->
-                        {ok, Fd} = file:open(Dir ++ '/' ++ X, [write]),
-                        % TODO add support for allocate
-                        % file:allocate(Fd, Offset, Length)
-                        file:close(Fd)
-                    end, Files),
-    end;
-ensure_file_entries({files, single, Name, [File]}, Location) ->
-    {ok, Fd} = file:open(Dir ++ '/' ++ Name),
-    file:close(Fd).
+%ensure_file_entries({files, multiple, Name, Files}, Location) ->
+%    Dir = Location ++ '/' ++ Name,
+%
+%    % Make sure that the torrent folder exists
+%    case ensure_dir(Dir) of
+%        ok ->
+%            % Create files
+%            foreach(fun(X) ->
+%                        {ok, Fd} = file:open(Dir ++ '/' ++ X, [write]),
+%                        % TODO add support for allocate
+%                        % file:allocate(Fd, Offset, Length)
+%                        file:close(Fd)
+%                    end, Files)
+%    end;
+%ensure_file_entries({files, single, Name, [File]}, Location) ->
+%    {ok, Fd} = file:open(Dir ++ '/' ++ Name),
+%    file:close(Fd).
 
 read_term_from_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
@@ -47,5 +47,19 @@ encode_hash(Info_bencoded) ->
     Upper_format = string:to_upper(Percent_format),
     {ok, Upper_format}.
 
-unique_id() ->
-    erlang:phash2({node(), now()}).
+% Splitting the pieces section from the metainfo into 20-byte segments and
+% placing them into a list.
+pieces_binary_to_list(Binary_pieces) when is_bitstring(Binary_pieces) ->
+    Pieces = pieces_binary_to_list1(Binary_pieces, []),
+
+    {ok, Pieces}.
+
+pieces_binary_to_list1(<<>>, Acc) ->
+    Acc;
+pieces_binary_to_list1(<<Piece_bin:20/integer, Rest/binary>>, Acc) ->
+    % TODO maybe remove the bin_to_list since string:equals can handle
+    % binary-string to string comparision
+
+    % Convert to string
+    Piece_str = binary:bin_to_list(Piece_bin),
+    pieces_binary_to_list1(Rest, [Piece_str| Acc]).

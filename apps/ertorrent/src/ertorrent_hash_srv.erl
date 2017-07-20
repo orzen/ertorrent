@@ -14,23 +14,40 @@
          read/6,
          read_files/1]).
 
-% gen_server
 -export([init/1,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         terminate/2,
-         code_change/3]).
+         terminate/2]).
 
--record(job, {name::string(),
-              self::pid(),
-              from::pid(),
-              filenames::list(),
-              piece_length::integer(),
-              n_pieces::integer(),
-              pieces::list()}).
+-record(job, {name::string(), % ID for the hash-job
+              self::pid(), % The PID of the server to get the results from the workers
+              from::pid(), % The PID of the process that sent the hash request
+              filenames::list(), % The files involved
+              piece_length::integer(), % The length of a piece
+              n_pieces::integer(), % The total number of pieces
+              pieces::list()}). % The accumulated pieces
 
 -record(state, {jobs::list()}).
+
+start() ->
+    gen_server:start(?MODULE, "", []).
+
+% TODO maybe need start_link/4 for additional name if more than one server
+% instance is needed
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+stop() ->
+    gen_server:stop(?MODULE).
+
+% Id is used to tag the message so that the receiver will be able to match the
+% request and response.
+hash_piece(Id, Data) when is_binary(Data) ->
+    gen_server:cast(?MODULE, {hash_piece, self(), Id, Data}).
+
+hash_files(Id, Filenames, Piece_length) ->
+    gen_server:cast(?MODULE, {hash_files, Id, self(), Filenames, Piece_length}).
 
 % Used to hash individual pieces that has been received and will usually
 % respond back to the calling process.
@@ -84,7 +101,6 @@ read_files(Job) ->
     lists:foldl(fun(Filename, {Piece_index, Remaining}) ->
                     case file:open(Filename, [binary]) of
                         {ok, Fd} ->
-
                             {Piece_index_new,
                              Remaining_new} = ?MODULE:read(Job,
                                                            Filename,
@@ -102,24 +118,6 @@ read_files(Job) ->
                     end
                 end, {0, <<>>}, Job#job.filenames).
 
-start() ->
-    gen_server:start(?MODULE, "", []).
-
-stop() ->
-    gen_server:stop(?MODULE).
-
-% Id is used to tag the message so that the receiver will be able to match the
-% request and response.
-hash_piece(Id, Data) when is_binary(Data) ->
-    gen_server:cast(?MODULE, {hash_piece, self(), Id, Data}).
-hash_files(Id, Filenames, Piece_length) ->
-    gen_server:cast(?MODULE, {hash_files, Id, self(), Filenames, Piece_length}).
-
-% TODO maybe need start_link/4 for additional name if more than one server
-% instance is needed
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
 init([]) ->
     ?DEBUG("starting"),
     {ok, #state{jobs=[]}}.
@@ -133,10 +131,13 @@ terminate(_Reason, _State) ->
 handle_call(terminate, _From, State) ->
     {stop, normal, ok, State}.
 
+%% @doc Callback for the client API to hash a single piece by its data
 handle_cast({hash_piece, Pid, Id, Data}, State) ->
     hash_piece_int(Pid, Id, Data),
 
     {noreply, State};
+
+%% @doc Callback for the client API to calculate the hashes for a list of files
 handle_cast({hash_files, Name, From, Filenames, Piece_length}, State) when is_list(Filenames) ->
     File_sizes = lists:foldl(fun(Filename, Sum) ->
                                  filelib:file_size(Filename) + Sum
@@ -148,6 +149,7 @@ handle_cast({hash_files, Name, From, Filenames, Piece_length}, State) when is_li
         _ ->
             N_pieces = trunc(File_sizes/Piece_length) + 1
     end,
+
     ?DEBUG("file size: " ++ File_sizes ++ ", pieces: " ++ N_pieces),
 
     Job = #job{name=Name,
@@ -174,11 +176,17 @@ handle_info({hashed_piece, {Name, Piece_index, Hash}}, State) ->
 
     New_job = Job#job{pieces=New_pieces},
 
+    % TODO probably could remove the guard '=/= 0'
     case New_job#job.n_pieces =/= 0 andalso
          New_job#job.n_pieces == length(New_job#job.pieces) of
         true ->
+            % Sort by piece index
             Sorted = lists:keysort(1, New_pieces),
+
+            % Create a list with the ordered hashes
             Pieces = [X || {_,X} <- Sorted],
+
+            % Remove the completed job from the list
             New_jobs = lists:keydelete(Name, 2, State#state.jobs),
             ?DEBUG("finished hashing " ++ Name),
             New_job#job.from ! {hashed_files, {Name, Pieces}};
@@ -189,7 +197,3 @@ handle_info({hashed_piece, {Name, Piece_index, Hash}}, State) ->
     New_state = State#state{jobs=New_jobs},
 
     {noreply, New_state}.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
-

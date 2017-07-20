@@ -15,10 +15,10 @@
 
 start(_StartType, _StartArgs) ->
     % Configuration handling, distributed setup and OS-specifics
-    ertorrent_sup:start_link_one().
+    ertorrent_sup:start_link_one(),
 
     % The rest of the internals
-    ertorrent_sup:start_link_two().
+    ertorrent_sup:start_link_two(),
 
     % The API
     ertorrent_sup:start_link_three().
@@ -29,6 +29,6 @@ stop(_State) ->
 -ifdef(TEST).
 
 dummy_test() ->
-	1.
+    1.
 
 -endif.

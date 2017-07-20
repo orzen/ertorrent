@@ -10,9 +10,8 @@
 
 -export([start_link/1,
          stop/0,
-         add_rx_peer/3,
-         add_tx_peer/3,
-         list/1,
+         add_rx_peer/2,
+         add_tx_peer/2,
          remove/1,
          remove_related/1]).
 
@@ -25,9 +24,9 @@
 
 -include("ertorrent_log.hrl").
 
--define(SERVER, ?MODULE).
--define(SUPERVISOR, ertorrent_peer_sup).
--define(SSUPERVISOR, ertorrent_peer_ssup).
+-define(SETTINGS_SRV, ertorrent_settings_srv).
+-define(PEER_SUP, ertorrent_peer_sup).
+-define(PEER_SSUP, ertorrent_peer_ssup).
 -define(TORRENT_SRV, ertorrent_torrent_srv).
 
 -ifdef(TEST).
@@ -35,26 +34,16 @@
 -endif.
 
 -record(state, {peers=[],
-                peer_id,
+                own_peer_id,
                 port_max,
                 port_min}).
 
 %%% Client API
-add_rx_peer(Socket, Info_hash, Peer_id) ->
-    gen_server:cast(?MODULE, {peer_srv_add_peer_rx, Socket, Info_hash, Peer_id}).
+add_rx_peer(Socket, Info_hash) ->
+    gen_server:cast(?MODULE, {peer_srv_add_peer_rx, Socket, Info_hash}).
 
-add_tx_peer(Address, Info_hash, Peer_id) ->
-    gen_server:cast(?MODULE, {peer_srv_add_peer_tx, Address, Info_hash, Peer_id}).
-
-list(Pid) ->
-    gen_server:cast(Pid, {peer_srv_list_peers}).
-
-print_list([]) ->
-    true;
-print_list([H|T]) ->
-    {Hash, _} = H,
-    io:format("~p~n", [Hash]),
-    print_list(T).
+add_tx_peer(Address, Info_hash) ->
+    gen_server:cast(?MODULE, {peer_srv_add_peer_tx, Address, Info_hash}).
 
 remove(Address) ->
     gen_server:call(?MODULE, {remove, Address}).
@@ -63,90 +52,92 @@ remove_related(Info_hash) ->
     gen_server:call(?MODULE, {remove_related, Info_hash}).
 
 %%% Standard client API
-start_link([Port_min, Port_max, Peer_id]) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Peer_id, Port_min, Port_max], []).
+start_link([Port_min, Port_max]) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Port_min, Port_max], []).
 
 stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
     gen_server:cast(?MODULE, stop).
 
 %%% Callback module
-init([Port_min, Port_max, Peer_id]) ->
-    {ok, #state{peer_id=Peer_id, port_min=Port_min, port_max=Port_max}}.
+init([Port_min, Port_max]) ->
+    Own_peer_id = ?SETTINGS_SRV:call({get, peer_id}),
+    {ok, #state{own_peer_id = Own_peer_id, port_min=Port_min, port_max=Port_max}}.
 
-%% Synchronous
 handle_call(Req, From, State) ->
     ?INFO("unhandled call request: " ++ Req ++ ", from: " ++ From),
     {noreply, State}.
 
-%% Asynchronous
-handle_cast({peer_srv_add_peer_in, Socket, Info_hash, Peer_id}, State) ->
-    Port_str = integer_to_list(Port),
+handle_cast({peer_srv_add_peer_in, Socket, Info_hash}, State) ->
+    ID = erlang:unique_integer(),
 
-    % Building an unique ID for the peer since the peer_srv is shared by all
-    % the torrent workers. It cannot be ruled out that the same address won't
-    % occur twice by different torrents. Therefore their IDs have to be
-    % destinguishable in order to manage them seperately.
-    ID_str = Address ++ Port ++ Info_hash,
-    ID_hash = crypto:hash(sha, Peer_info_hash),
-    ID_atom = binary_to_atom(ID_hash),
+    % Retreive the address and port from the socket
+    case inet:peername(Socket) of
+        {ok, {S_address, S_port}} ->
+            Address = S_address,
+            Port = S_port;
+        {error, Reason_peername} ->
+            ?WARNING("failed to retreive address and port form peer_tx socket: "
+                     ++ Reason_peername),
+
+            % Set fail-over values for Address and Port, these values are
+            % mainly for information so should not be vital.
+            Address = unknown,
+            Port = unknown
+    end,
+
+    Peers = State#state.peers,
 
     % Validate the Info_hash
     case ?TORRENT_SRV:member_by_info_hash(Info_hash) of
         true ->
-            case supervisor:start_child(?SUPERVISOR,
-                                         [Atom_hash,
-                                             [ID,
-                                              Info_hash,
-                                              State#state.peer_id,
-                                              Socket]]) of
+            case supervisor:start_child(?PEER_SUP,
+                                         [ID,
+                                          [ID,
+                                           Info_hash,
+                                           State#state.own_peer_id,
+                                           Socket]]) of
                 {ok, Peer_pid} ->
-                    New_state = State#state{peers=[{ID_atom,
+                    New_state = State#state{peers=[{ID,
                                                     Peer_pid,
-                                                    Torrent_pid,
                                                     Address,
                                                     Port,
                                                     Info_hash}| Peers]};
-                {ok, Peer_pid, Info} ->
-                    New_state = State#state{peers=[{ID_atom,
+                {ok, Peer_pid, _Info} ->
+                    New_state = State#state{peers=[{ID,
                                                     Peer_pid,
-                                                    Torrent_pid,
                                                     Address,
                                                     Port,
                                                     Info_hash}| Peers]};
-                {error, Reason} ->
-                    ?ERROR("peer_srv failed to spawn a peer_worker (rx), check the peer_sup. reason: " ++ Reason),
+                {error, Reason_sup} ->
+                    ?ERROR("peer_srv failed to spawn a peer_worker (rx), check the peer_sup. reason: "
+                           ++ Reason_sup),
 
                     % TODO if there's an issue with the peer_sup being
                     % unresponsive. An alternative could be to message the
                     % peer_ssup to restart the sup. For now it will only be
                     % logged.
 
-                    {noreply, State}
+                    New_state = State
             end;
         false ->
-            ?WARNING("incoming peer request for a non-existing torrent with hash:" ++ Info_hash )
+            ?WARNING("incoming peer request for a non-existing torrent with hash:"
+                     ++ Info_hash),
+
+            New_state = State
     end,
-    {noreply, State};
+    {noreply, New_state};
 
-handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Peer_id, Socket, Torrent_pid}}, State) ->
-    Port_str = integer_to_list(Port),
-
-    % Building an unique ID for the peer since the peer_srv is shared by all
-    % the torrent workers. It cannot be ruled out that the same address won't
-    % occur twice by different torrents. Therefore their IDs have to be
-    % destinguishable in order to manage them seperately.
-    ID_str = Address ++ Port ++ Info_hash,
-    ID_hash = crypto:hash(sha, Peer_info_hash),
-    ID_atom = binary_to_atom(ID_hash),
+handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Socket}}, State) ->
+    ID = erlang:unique_integer(),
 
     case gen_tcp:connect(Address, Port, [binary, {packet, 0}]) of
         {ok, Socket} ->
-            Ret = supervisor:start_child(?SUPERVISOR,
-                                         [Atom_hash,
-                                             [ID_atom,
+            Ret = supervisor:start_child(?PEER_SUP,
+                                         [ID,
+                                             [ID,
                                               Info_hash,
-                                              State#state.peer_id,
+                                              State#state.own_peer_id,
                                               Socket]]),
             case Ret of
                 % TODO Atm the handling of the {ok, _} responses is redundant.
@@ -158,14 +149,11 @@ handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Peer_id, Socket, 
 
                     ok = gen_server:cast(Peer_pid, transmit),
 
-                    New_state = State#state{peers=[{ID_atom,
+                    New_state = State#state{peers=[{ID,
                                                     Peer_pid,
-                                                    Torrent_pid,
                                                     Address,
                                                     Port,
-                                                    Info_hash}| Peers]},
-
-                    {noreply, New_state};
+                                                    Info_hash}| Peers]};
                 {ok, Peer_pid, Info} ->
                     ?INFO("recv unhandled data 'Info': " ++ Info),
 
@@ -173,36 +161,37 @@ handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Peer_id, Socket, 
 
                     ok = gen_server:cast(Peer_pid, transmit),
 
-                    New_state = State#state{peers=[{ID_atom,
+                    New_state = State#state{peers=[{ID,
                                                     Peer_pid,
-                                                    Torrent_pid,
                                                     Address,
                                                     Port,
-                                                    Info_hash}| Peers]},
+                                                    Info_hash}| Peers]};
 
-                    {noreply, New_state};
-                {error, Reason} ->
-                    ?ERROR("peer_srv failed to spawn a peer_worker (tx), check the peer_sup. reason: " ++ Reason),
+                {error, Reason_sup} ->
+                    ?ERROR("peer_srv failed to spawn a peer_worker (tx), check the peer_sup. reason: "
+                           ++ Reason_sup),
 
                     % TODO if there's an issue with the peer_sup being
                     % unresponsive. An alternative could be to message the
                     % peer_ssup to restart the sup. For now it will only be
                     % logged.
 
-                    {noreply, State}
-            end;
-        {error, Reason} ->
-            ?DEBUG("peer_srv failed to establish connection with peer: " ++
-                  Address ++ ":" ++ Port ++ ", reason: " ++ Reason),
+                    New_state = State
+            end,
 
-            State#state.torrent_pid ! {peer_srv, requesting_peer},
+            {noreply, New_state};
+        {error, Reason_connect} ->
+            ?INFO("peer_srv failed to establish connection with peer: " ++
+                  Address ++ ":" ++ Port ++ ", reason: " ++ Reason_connect),
+
+            ?TORRENT_SRV ! {peer_srv, requesting_peer},
 
             {noreply, State}
     end;
 handle_cast(stop, State) ->
     {stop, normal, State}.
 
-%% Do work here
+% Forwarded messages
 handle_info({peer_w_read_piece, From, Info_hash, Piece_idx}, State) ->
     ?TORRENT_SRV ! {peer_s_read_piece, From, Info_hash, Piece_idx},
     {noreply, State};
@@ -214,7 +203,7 @@ handle_info({'EXIT', _ParentPid, shutdown}, State) ->
 handle_info(_Info, _State) ->
     ok.
 
-terminate(Reason, _State) ->
+terminate(Reason, State) ->
     io:format("~p: going down, Reason: ~p~n", [?MODULE, Reason]),
     error_logger:info_msg("~p: terminating, reason: ~p~n", [?MODULE, Reason]),
     {ok, State}.

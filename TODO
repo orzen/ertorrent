@@ -1,4 +1,4 @@
-TODO:
+tODO:
 =======
 
 Questions:
@@ -9,6 +9,7 @@ Questions:
 - Are the three steps a sufficient boot separation? Check ertorrent_app.erl
 
 General:
+- Figure out the piece format of the metainfo
 - Merge the peer_in_sup with the peer_ssup
 - Read up on OS-specifics http://erlang.org/doc/man/os.html#type-0
 - Figure out start up order. settings sup.tree needs to start up first so that
@@ -34,6 +35,8 @@ General:
 - Look over how the peer sockets are being set up. It could be an idea to use
   the IP address as ID for the peer_workers but how to we retreive the address
   if someone else is establishing the connection?
+- Figure out how to store the uploaded amount of each torrent since this is a
+  part of the tracker announcement
 
 file_srv:
 - Implement handle_info({file_w_pread_resp
@@ -50,11 +53,16 @@ tracker_srv:
 - Add incoming peer port
 
 torrent_worker:
-- During init, request a tracker worker
+- Figure out the time between tracker announcements from the specification and
+  update the value of ANNOUNCE_TIME
+- During "handle_cast({start", request a tracker_worker
+- During "handle_cast({start", create a file_worker
+- Create missing files based on Missing_files
 - Remove port from announce_trigger()
 - Don't serve buffered requests when peer is choked.
 - Decide how to handle buffered requests during the time that the peer is
   choked. Drop all the requests or keep them buffered?
+- What is the compact field in the state record for?
 
 torrent_srv:
 - Iterate and add stored metainfo in init/1, stored metainfo should be read by
@@ -83,3 +91,6 @@ peer_worker:
 - Rename cached_requests in the state record to buffered_requests
 - Add default values to the peer_state record since this is covered by the
   bittorrent protocol specification
+
+utils:
+- Sort the functions in this module

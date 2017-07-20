@@ -15,4 +15,4 @@ init(_Arg) ->
                          {ertorrent_settings_worker, start_link, []},
                          transient, 60*1000, worker, [ertorrent_settings_worker]},
 
-    {ok, {SupFlags, [Settings_srv_spec]}}.
+    {ok, {SupFlags, [Settings_srv_specs]}}.

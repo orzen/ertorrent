@@ -8,9 +8,11 @@
          resolve_files/1,
          split_pieces/2]).
 
+-define(BENCODE, ertorrent_bencode).
+
 resolve_files(Metainfo) ->
-    {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
-    {ok, Name} = metainfo:get_value(<<"name">>, Info),
+    {ok, Info} = get_value(<<"info">>, Metainfo),
+    {ok, Name} = get_value(<<"name">>, Info),
 
     % Determine the file mode and resolve the files into a predicatable and
     % efficient format.
@@ -38,7 +40,7 @@ resolve_files(Metainfo) ->
             File_mode = single,
 
             % Mandatory value
-            {ok, Length} = metainfo:get_value(<<"length">>, Info),
+            {ok, Length} = get_value(<<"length">>, Info),
 
             % Optional value
             case lists:keyfind(<<"md5sum">>, 1, Info) of
@@ -77,7 +79,7 @@ is_magnet(Str) ->
 
 parse_file(Filename) ->
     {ok, Data} = file:read_file(Filename),
-    bencode:decode(Data).
+    ?BENCODE:decode(Data).
 
 parse_magnet(Uri) ->
     Urn = string:substr(Uri, 9),

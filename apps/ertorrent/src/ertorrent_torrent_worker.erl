@@ -12,53 +12,67 @@
 -export([start_link/2,
          shutdown/1,
          start/1,
+         start_torrent/1,
          stop/1]).
 
 -export([init/1,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         terminate/2,
-         code_change/3]).
+         terminate/2]).
 
 -include("ertorrent_log.hrl").
 
--define(SERVER, ?MODULE).
--define(TRACKER, ertorrent_tracker_dispatcher).
--define(SETTINGS_SRV, ertorrent_settings_srv).
+-define(ANNOUNCE_TIME, 30000).
+-define(BITFIELD, ertorrent_bitfield_utils).
 -define(HASH_SRV, ertorrent_hash_srv).
+-define(METAINFO, ertorrent_metainfo).
+-define(SETTINGS_SRV, ertorrent_settings_srv).
+-define(TRACKER, ertorrent_tracker_dispatcher).
+-define(UTILS, ertorrent_utils).
 
+%% @doc Type to represent the internal state of a torrent worker
+%% @initializing == before hashing is completed
+%% @inactive == after hashing has been completed and before the user has called
+%% start
+%% @active == everything is up and running
+%% @end
+
+%% @type state_type()
 -type state_type() :: initializing | active | inactive.
 
+%% @doc The event type is used to represent the state of the torrent towards
+%% the tracker.
+%% @end
 -type event_type() :: stopped | started | completed.
 
 -export_type([state_type/0,
               event_type/0]).
 
--record(tracker, {downloaded::integer(),
-                  info_hash::string(),
-                  left::integer(),
-                  ref::
-                  uploaded::integer()}).
 
 -record(state, {announce::string(),
-                bitfield::list(),
+                announce_ref::reference(), % Timer reference for tracker announcements
+                bitfield::<<>>, % Our bitfield for bookkeeping and peer messages
+                compact, % The format of the tracker announcements, 0 = non-compact, 1 = compact
+                downloaded::integer(), % Tracker information about how much has been downloaded
                 event::event_type(),
-                files::tuple(),
+                files::tuple(), % Files tuple e.g. {files, multiple, Name, Files_list}
                 file_paths::list(),
-                internal_state::state_type(),
-                length::integer(),
+                info_hash::string(),
+                left::integer(), % Tracker information about how much is left to download
+                internal_state:: initializing | active | inactive,
+                length::integer(), % Total length of the torrent contents
                 locations::list(),
                 metainfo,
                 peers::list(),
-                peer_id::string(),
-                port::integer(),
+                peer_id::string(), % Our unique peer id e.g. ER-1-0-0-<sha1>
+                pieces::list(), % Piece hashes from the metainfo
                 tracker_interval::integer(),
                 uploaded::integer()}).
 
 % Starting server
-start_link(Name, [Info_hash, Metainfo, Port]) ->
-    gen_server:start_link({local, Name}, ?MODULE, [Info_hash, Metainfo, Port], []).
+start_link(Info_hash_atom, [Info_hash, Metainfo, Port]) when is_atom(Info_hash_atom) ->
+    gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo], []).
 
 % Shutting down the server
 shutdown(Name) ->
@@ -76,20 +90,54 @@ stop(Name) when is_atom(Name) ->
 %% INTERNAL FUNCTIONS
 
 % Time triggered function
-announce_trigger(State) ->
-    {ok, Request_id} = ?TRACKER:announce(State#state.announce,
-                                         State#state.info_hash,
-                                         State#state.peer_id,
-                                         State#state.port,
-                                         State#state.uploaded,
-                                         State#state.downloaded,
-                                         State#state.left,
-                                         atom_to_list(State#state.event),
-                                         State#state.compact),
+tracker_announce_loop(State) ->
+    {ok, _Request_id} = ?TRACKER:announce(State#state.announce,
+                                          State#state.info_hash,
+                                          State#state.peer_id,
+                                          State#state.uploaded,
+                                          State#state.downloaded,
+                                          State#state.left,
+                                          atom_to_list(State#state.event),
+                                          State#state.compact),
 
     % Send message to tracker.
-    erlang:send_after(?ANNOUNCE_TIME, self(), {announce}),
-    ok.
+    Ref = erlang:send_after(?ANNOUNCE_TIME, self(), {torrent_w_tracker_announce_loop}),
+
+    {ok, Ref}.
+
+start_torrent(State) ->
+    % Ensure that the directory structure is alright
+    lists:foreach(fun(Path) ->
+                      case filelib:ensure_dir(Path) of
+                          ok ->
+                              ?DEBUG("ensured path: " ++ Path);
+                          {error, Reason} ->
+                              ?ERROR("failed to create path: " ++ Path)
+                      end
+                  end, State#state.file_paths),
+
+    % Check file status
+
+    % Compile a list with files that exists on the filesystem. The only time
+    % files are expected to not exist is when the torrent is newly added. When
+    % a torrent is added the entire set of files should be created.
+    % TODO this should probably contain file sizes and should not be part of process_metainfo
+    Missing_files = lists:foldl(fun(Filename, Acc) ->
+                                    case filelib:is_file(binary_to_list(Filename)) of
+                                        false ->
+                                            [Filename| Acc]
+                                    end
+                                end, [], State#state.file_paths),
+
+    % Create an update state record for the tracker announcement
+    New_state_event = State#state{event=started},
+
+    % Initial announce
+    {ok, Announce_ref} = tracker_announce_loop(New_state_event),
+
+    New_state = New_state_event#state{announce_ref = Announce_ref,
+                                      event = started},
+    {ok, New_state}.
 
 %%% Callback module
 init([Info_hash, Metainfo]) ->
@@ -97,10 +145,16 @@ init([Info_hash, Metainfo]) ->
     % Replacing reserved characters
     Peer_id_encoded = edoc_lib:escape_uri(Peer_id),
 
-    {ok, Announce_address} = metainfo:get_value(<<"announce">>, Metainfo),
-    {ok, Piece_length} = metadinfo:get_value(<<"piece length">>, Metainfo),
+    {ok, Announce_address} = ?METAINFO:get_value(<<"announce">>, Metainfo),
+    {ok, Length} = ?METAINFO:get_value(<<"length">>, Metainfo),
+    {ok, Piece_length} = ?METAINFO:get_value(<<"piece length">>, Metainfo),
 
-    Resolved_files = metainfo:resolve_files(Metainfo),
+    % Prepare a list of pieces since, the piece section of the metainfo
+    % consists of a concatenated binary of all the pieces.
+    {ok, Pieces_bin} = ?METAINFO:get_info_value(<<"pieces">>, Metainfo),
+    Pieces = ?UTILS:piece_binary_to_list(Pieces_bin),
+
+    Resolved_files = ?METAINFO:resolve_files(Metainfo),
 
     Location = ?SETTINGS_SRV:get_sync(download_location),
 
@@ -125,64 +179,102 @@ init([Info_hash, Metainfo]) ->
     % TODO possible race condition?
     ?HASH_SRV:hash_files(self(), Filenames, Piece_length),
 
-    State = #state{metainfo=Metainfo,
-                   announce=Announce_address,
-                   files=Resolved_files,
-                   info_hash=Info_hash,
-                   peer_id=Peer_id_encoded,
-                   length=Length,
-                   uploaded=0,
-                   downloaded=0,
-                   left=0,
-                   event="stopped"},
+    State = #state{announce = Announce_address,
+                   downloaded = 0,
+                   event = stopped,
+                   files = Resolved_files,
+                   info_hash = Info_hash,
+                   left = 0,
+                   length = Length,
+                   metainfo = Metainfo,
+                   peer_id = Peer_id_encoded,
+                   pieces = Pieces,
+                   uploaded = 0},
 
     ?DEBUG("new torrent " ++ Info_hash),
 
     {ok, State}.
 
+terminate(Reason, _State) ->
+    io:format("~p: going down, with reason '~p'~n", [?MODULE, Reason]),
+    ok.
+
 %% Synchronous
-handle_call({start}, _From, State) ->
-    New_state = State#state{event=started},
-
-    % Check file status
-
-    % Compile a list with files that exists on the filesystem. The only time
-    % files are exoected to not exist is when the torrent is newly added. When
-    % a torrent is added the entire set of files should be created.
-    % TODO this should probably contain file sizes and should not be part of process_metainfo
-    File_list = lists:foldl(fun(Filename, Acc) ->
-                                case filelib:is_file(binary_to_list(Filename)) of
-                                    true ->
-                                        [{Filename, true}|Acc];
-                                    false ->
-                                        [{Filename, false}|Acc]
-                                end,
-                            end, [], Download_files).
-
-    % Initial announce
-    ok = announce(New_state),
-
-
-    {reply, started, New_state};
 handle_call({list}, _From, _State) ->
     io:format("~p list~n",[?MODULE]),
     {ok}.
 
-%% Asynchronous
+%% User input that should change the torrent state from inactive to active
+%% TODO finish me!
+handle_cast({start, From}, State) ->
+
+    case State#state.internal_state of
+        inactive ->
+            _State = start_doing_stuff;
+        active ->
+            _State = already_doing_stuff;
+        initializing ->
+            _State = still_initializing_try_again_later;
+        _ ->
+            ?ERROR("torrent worker in a broken state: " ++
+                   atom_to_list(State#state.internal_state))
+    end,
+
+    New_state = State,
+
+    {reply, started, New_state};
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_Request, _State) ->
     {ok}.
 
-handle_info({tracker, Response}, State) ->
-    {ok}.
+handle_info({torrent_w_tracker_announce_loop}, State) ->
+    {ok, Announce_ref} = tracker_announce_loop(State),
+
+    New_state = State#state{announce_ref = Announce_ref},
+
+    {noreply, New_state};
+
+% TODO finish me!
+handle_info({tracker_announce, Response}, State) ->
+    {noreply, State};
+
 handle_info({torrent_s_read_piece_req, From, Info_hash, Piece_idx}, State) ->
     % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
 
-terminate(Reason, _State) ->
-    io:format("~p: going down, with reason '~p'~n", [?MODULE, Reason]),
-    ok.
+%% Response form hashing a single piece
+handle_info({torrent_s_hash_piece_resp, Index, Hash}, State) ->
+    {noreply, State};
 
-code_change(_OldVsn, _State, _Extra) ->
-    {ok}.
+%% Response from the initial hashing
+%% TODO update the values of downloaded, left
+handle_info({torrent_s_hash_files_resp, Hashes}, State) ->
+    ?DEBUG("recv torrent_s_hash_files_resp"),
 
+    % Construct a list of the to list in the form [{X_hash, Y_hash}, {X_hash1,
+    % Y_hash1}]. Now the comparison can be done in one iteration of the ziped
+    % list.
+    Ziped_piece_hashes = lists:zip(State#state.pieces, Hashes),
+
+    % Constuct a new list over missing and completed pieces.
+    % 0 represents a missing piece.
+    % 1 represents a completed piece.
+    % The new list will be in reverse order.
+    Bitfield_list = lists:foldl(fun({X,Y}, Acc) ->
+                                    case X =:= Y of
+                                        true -> R = 1;
+                                        false -> R = 0
+                                    end,
+                                    [R| Acc]
+                                end, [], Ziped_piece_hashes),
+
+    % Reverse to regain correct order
+    Bitfield_list_ordered = lists:reverse(Bitfield_list),
+
+    % Convert list to bitfield
+    Bitfield = ?BITFIELD:list_to_bitfield(Bitfield_list_ordered),
+
+    New_state = State#state{bitfield = Bitfield},
+
+    {noreply, New_state}.

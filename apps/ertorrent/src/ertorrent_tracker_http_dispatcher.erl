@@ -24,7 +24,7 @@
          code_change/3]).
 
 % mapping, maps HTTP request ID with dispatch request.
--record(state, {mapping::list()}).
+-record(state, {requests::list()}).
 
 announce(Address, Info_hash, Peer_id, Port, Uploaded, Downloaded, Left, Event,
          Compact) ->
@@ -38,7 +38,7 @@ announce(Address, Info_hash, Peer_id, Port, Uploaded, Downloaded, Left, Event,
                                            Event,
                                            Compact),
 
-    gen_server:call(?MODULE, {announce, Request}).
+    gen_server:cast(?MODULE, {announce, self(), Request}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -47,32 +47,37 @@ init(_Args) ->
     inets:start(),
     {ok, #state{}}.
 
-handle_call({announce, Request}, From, State) ->
+handle_call(Req, From, State) ->
+    ?WARNING("unhandled call: " ++ Req ++ " from: " ++ From),
+    {noreply, State}.
+
+handle_cast({announce, From, Request}, State) ->
     {ok, Request_id} = httpc:request(get, {Request, [{"Accept", "text/plain"}]},
                                     [], [{sync, false}, {headers_as_is, true}]),
 
-    Mapping = [{Request_id, From} | State#state.mapping],
+    Requests = [{Request_id, From} | State#state.requests],
 
-    {reply, {ok, Request_id}, State#state{mapping=Mapping}}.
+    {noreply, State#state{requests=Requests}};
 
-handle_cast(_Req, State) ->
+handle_cast(Req, State) ->
+    ?WARNING("unhandled cast: " ++ Req),
     {noreply, State}.
 
 % Handle the tracker response
 handle_info({http, {Request_id, Response}}, State) ->
-    case lists:keyfind(Request_id, 1, State#state.mapping) of
+    case lists:keyfind(Request_id, 1, State#state.requests) of
         {Request_id, From} ->
             ?DEBUG("Received response " ++ Response),
             ?DEBUG("Passing response to torrent: " ++ From),
 
-            % Updateing the mapping
-            Mapping = lists:delete({Request_id, From}, State#state.mapping),
+            % Updating the mapping
+            Requests = lists:delete({Request_id, From}, State#state.requests),
 
             % Decode and send response to the torrent process
             Decoded_response = bencode:decode(Response),
-            From ! {tracker, Decoded_response},
+            From ! {tracker_http_dispatcher_res, Decoded_response},
 
-            New_state = State#state{mapping=Mapping};
+            New_state = State#state{requests=Requests};
         false ->
             % This is required to provide a new state in the previous clause.
             New_state = State,
