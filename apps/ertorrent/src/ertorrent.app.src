@@ -10,7 +10,7 @@
   {env,[]},
   {modules, [ertorrent_app,
              ertorrent_bencode,
-             ertorrent_bitfield_utils,
+             ertorrent_binary_utils,
              ertorrent_file_srv,
              ertorrent_file_sup,
              ertorrent_file_worker,

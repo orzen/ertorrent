@@ -81,7 +81,7 @@
 -define(KEEP_ALIVE_TX_TIMER, 100000).
 
 -define(PEER_SRV, ertorrent_peer_srv).
--define(BITFIELD_UTILS, ertorrent_bitfield_utils).
+-define(BINARY, ertorrent_binary_utils).
 -define(PEER_PROTOCOL, ertorrent_peer_tcp_protocol).
 
 %%% Extended client API
@@ -299,7 +299,7 @@ handle_info({tcp, _S, <<>>}, State) ->
 
     {noreply, New_state};
 handle_info({tcp, _S, <<?HAVE, Piece_idx:32/big-integer>>}, State) ->
-    New_bitfield = ?BITFIELD_UTILS:set_bit(Piece_idx, 1, State#state.peer_bitfield),
+    New_bitfield = ?BINARY:set_bit(Piece_idx, 1, State#state.peer_bitfield),
 
     State#state.peer_srv_pid ! {peer_w_bitfield_update, New_bitfield},
     % TODO if we're sending a piece that is announced in a HAVE message, should

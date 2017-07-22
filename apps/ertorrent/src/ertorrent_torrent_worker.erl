@@ -24,12 +24,20 @@
 -include("ertorrent_log.hrl").
 
 -define(ANNOUNCE_TIME, 30000).
--define(BITFIELD, ertorrent_bitfield_utils).
+-define(BINARY, ertorrent_binary_utils).
 -define(HASH_SRV, ertorrent_hash_srv).
 -define(METAINFO, ertorrent_metainfo).
 -define(SETTINGS_SRV, ertorrent_settings_srv).
 -define(TRACKER, ertorrent_tracker_dispatcher).
+-define(TORRENT_SRV, ertorrent_torrent_srv).
 -define(UTILS, ertorrent_utils).
+
+% EXECUTION ORDER:
+% init
+% hash_files_resp
+% USER INPUT
+% tracker_announce
+% add_rx_peer
 
 %% @doc Type to represent the internal state of a torrent worker
 %% @initializing == before hashing is completed
@@ -49,7 +57,6 @@
 -export_type([state_type/0,
               event_type/0]).
 
-
 -record(state, {announce::string(),
                 announce_ref::reference(), % Timer reference for tracker announcements
                 bitfield::<<>>, % Our bitfield for bookkeeping and peer messages
@@ -67,6 +74,11 @@
                 peers::list(),
                 peer_id::string(), % Our unique peer id e.g. ER-1-0-0-<sha1>
                 pieces::list(), % Piece hashes from the metainfo
+                peers_max::integer(), % The maximum amount of peers this torrent is allowed to have
+                peers_cur::integer(), % Current number of active peers
+                start_when_ready::boolean(), % TODO use this, if the torrent should start regardless of user input. Should also be used if you want to activate the torrent whenever the torrent is shifting state from initializing to inactive.
+                stats_leechers::integer(), % Stats from the tracker that might be of interest
+                stats_seeders::integer(), % Stats from the tracker that might be of interest
                 tracker_interval::integer(),
                 uploaded::integer()}).
 
@@ -236,7 +248,71 @@ handle_info({torrent_w_tracker_announce_loop}, State) ->
     {noreply, New_state};
 
 % TODO finish me!
+% - parse the peers
 handle_info({tracker_announce, Response}, State) ->
+    % Using utility function from metainfo since operates on bdecoded
+    % structures.
+    {ok, Stats_seeders} = ?METAINFO:get_value(<<"complete">>, Response),
+    {ok, Stats_leechers} = ?METAINFO:get_value(<<"incomplete">>, Response),
+    {ok, Peers} = ?METAINFO:get_value(<<"peers">>, Response),
+
+    % The peers in a tracker response can come in two forms as a dictionary or
+    % binary. If the client announced, requesting compact the format will be
+    % binary otherwise dictonary. Is it safe to assume that every tracker
+    % supports compact since compact wasn't part of the initial version of the
+    % torrent protocol?
+    case is_binary(Peers) of
+        true ->
+            {ok, Peer_list} = ?BINARY:parse_peers(Peers);
+        false ->
+            Peer_list = lists:foldl(fun({Peer_id, Address_bin, Port}, Acc) ->
+                                        % TODO the convertion and resolving to
+                                        % proper addresses could be moved to
+                                        % the peer_w.
+
+                                        % Convert the bdecoded value from binary to string
+                                        Address_str = binary_to_list(Address_bin),
+
+                                        % Translate address from a string to tuple.
+                                        % NOTE: This will NOT work for hostnames.
+                                        case inet:parse_address(Address_str) of
+                                            {ok, Address} ->
+                                                Address;
+                                            % If parse_address() fails, the value is most likely a hostname
+                                            {error, einval} ->
+                                                % TODO maybe it is relevant to resolve to IPv6 family as well?
+                                                % Trying to resolve the hostname to IPv4 family
+                                                {ok, Address} = inet:getaddr(Address_str, inet)
+                                        end,
+
+                                        [{Address, Port}| Acc]
+                                    end, [], Peers)
+    end,
+
+    % TODO this should not be done every time we receive a tracker response
+    case State#state.peers_cur < State#state.peers_max of
+        true ->
+            % Calculate this missing number of peers
+            Missing_nbr_peers = State#state.peers_max - State#state.peers_cur,
+
+            % Create a list, equal to the amount of missing peers, to activate
+            {Peers_activate, Peers_rest} = lists:split(Missing_nbr_peers, Peer_list),
+
+            % Tell the torrent_s to start the peers
+            ?TORRENT_SRV ! {torrent_w_add_rx_peers, Peers_activate}
+    end,
+
+    % Assume that the maximum amount of peers has been acheived until a message
+    % has been received that says otherwise.
+    New_state = State#state{peers_cur = State#state.peers_max,
+                            peers = Peers_rest,
+                            stats_leechers = Stats_leechers,
+                            stats_seeders = Stats_seeders},
+
+    {noreply, State};
+
+%% A peer became inactive so it's time to find a replacement
+handle_info({torrent_s_peer_inactive, ID}, State) ->
     {noreply, State};
 
 handle_info({torrent_s_read_piece_req, From, Info_hash, Piece_idx}, State) ->
@@ -244,6 +320,9 @@ handle_info({torrent_s_read_piece_req, From, Info_hash, Piece_idx}, State) ->
     {noreply, State};
 
 %% Response form hashing a single piece
+%% TODO update the bitfield and update downloaded, left if the piece hashes match
+%% - Match the piece hashes
+%% - If piece is ok, look up a new one and ask the peer_w for that one.
 handle_info({torrent_s_hash_piece_resp, Index, Hash}, State) ->
     {noreply, State};
 
@@ -273,8 +352,9 @@ handle_info({torrent_s_hash_files_resp, Hashes}, State) ->
     Bitfield_list_ordered = lists:reverse(Bitfield_list),
 
     % Convert list to bitfield
-    Bitfield = ?BITFIELD:list_to_bitfield(Bitfield_list_ordered),
+    Bitfield = ?BINARY:list_to_bitfield(Bitfield_list_ordered),
 
-    New_state = State#state{bitfield = Bitfield},
+    New_state = State#state{bitfield = Bitfield,
+                            internal_state = inactive},
 
     {noreply, New_state}.
