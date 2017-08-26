@@ -32,10 +32,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--record(peer_state, {choked,
-                     interested}).
-
--record(state, {cached_requests::list(),
+-record(state, {request_buffer::list(),
                 dht_port,
                 id, % peer_worker_id
                 incoming_piece::binary(),
@@ -59,9 +56,12 @@
                 peer_bitfield,
                 peer_id,
                 peer_srv_pid,
-                peer_state,
+                peer_choked,
+                peer_interested,
                 received_handshake::boolean(),
                 socket,
+                self_choked,
+                self_interested,
                 state_incoming,
                 state_outgoing,
                 torrent_bitfield,
@@ -143,9 +143,10 @@ complete_piece(State) ->
     Piece = blocks_to_piece(Blocks),
 
     % Announce the finished piece to the other subsystems via the peer_srv
-    State#state.peer_srv_pid ! {peer_worker_piece_ready,
+    State#state.peer_srv_pid ! {peer_w_piece_ready,
                                 State#state.torrent_pid,
-                                State#state.incoming_piece_hash,
+                                State#state.id,
+                                State#state.incoming_piece_index,
                                 Piece},
 
     [{New_piece_index,
@@ -165,8 +166,8 @@ complete_piece(State) ->
 init([ID, Info_hash, Peer_id, Socket, Torrent_pid]) when is_atom(ID) ->
     {ok, #state{id=ID,
                 peer_id=Peer_id, % TODO Should this be retreived from settings_srv?
-                peer_state=#peer_state{choked=true,
-                                       interested=true},
+                peer_state=#peer_state{choked = true,
+                                       interested = true},
                 socket=Socket,
                 torrent_info_hash=Info_hash,
                 torrent_pid=Torrent_pid}}.
@@ -181,7 +182,7 @@ terminate(Reason, State) ->
 
     ?PEER_SRV ! {peer_w_terminate,
                  State#state.id,
-                 State#state.incoming_piece_hash},
+                 State#state.incoming_piece_index},
 
     ok.
 
@@ -333,29 +334,32 @@ handle_info({tcp, _S, <<?REQUEST, Index:32/big, Begin:32/big, Length:32/big>>}, 
             Cached_requests = [{request, Index, Begin, Length}|
                                State#state.cached_requests],
 
-            State#state.peer_srv_pid ! {peer_w_piece_request, self(), Index},
+            State#state.peer_srv_pid ! {peer_w_piece_req, self(), Index},
 
             New_state = State#state{cached_requests=Cached_requests}
     end,
 
     {noreply, New_state};
-handle_info({tcp, _S, <<?PIECE, Index:32/big-integer,
-                                        Begin:32/big-integer, Data/binary>>},
-            State) ->
+handle_info({tcp, _S, <<?PIECE, Index:32/big-integer, Begin:32/big-integer,
+                        Data/binary>>}, State) ->
     ?INFO("piece index: " ++ Index ++ " begin: " ++ Begin),
+    % Check that the piece is requested
     case Index == State#state.incoming_piece_index of
         true ->
             Size = State#state.incoming_piece_downloaded_size + binary:referenced_byte_size(Data),
 
             case Size of
+                % If the size is smaller then the total expected amount, keep building the piece
                 Size when Size < State#state.incoming_piece_total_size ->
                     New_blocks = [{Begin, Data}| State#state.incoming_piece_blocks],
                     New_size = Size,
 
                     New_state = State#state{incoming_piece_blocks = New_blocks,
                                             incoming_piece_downloaded_size = New_size};
+                % If it's the expected size, complete the piece
                 Size when Size == State#state.incoming_piece_total_size ->
                     {ok, New_state} = complete_piece(State);
+                % If the size exceeds the expected size, something has gone terribly wrong
                 Size when Size > State#state.incoming_piece_total_size ->
                     ?ERROR("Size of the piece is larger than it is supposed to. Discarding blocks"),
                     New_state = State
@@ -368,14 +372,17 @@ handle_info({tcp, _S, <<?PIECE, Index:32/big-integer,
     {noreply, New_state};
 
 % TODO determine if we should clear the request buffer when receiving choked?
+% According to http://jonas.nitro.dk/bittorrent/bittorrent-rfc.txt
+% "If a peer chokes a remote peer, it MUST also discard any unanswered
+% requests for blocks previously received from the remote peer."
 handle_info({tcp, _S, <<?CHOKE>>}, State) ->
     % Inform the other subsystems that this peer is choked
     % TODO I am adding this for the future if we want to display this in any way
     State#state.peer_srv_pid ! {peer_w_choke, State#state.id},
 
-    % Updating the peer state
-    New_peer_state = State#state.peer_state#peer_state{choked = true},
-    New_state = State#state{peer_state = New_peer_state},
+    % Updating the peer state and clearing the request buffer
+    New_state = State#state{peer_choked = true,
+                            request_buffer = []},
 
     {noreply, New_state};
 handle_info({tcp, _S, <<?UNCHOKE>>}, State) ->

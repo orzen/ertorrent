@@ -1,6 +1,7 @@
 -module(ertorrent_utils).
 
--export([read_term_from_file/1,
+-export([index_list/1,
+         read_term_from_file/1,
          write_term_to_file/2,
          encode_hash/1,
          pieces_binary_to_list/1]).
@@ -22,6 +23,118 @@
 %ensure_file_entries({files, single, Name, [File]}, Location) ->
 %    {ok, Fd} = file:open(Dir ++ '/' ++ Name),
 %    file:close(Fd).
+
+
+create_file_mapping__unify_file_list(File_paths) ->
+    % Unify the tuple list of files and file sizes
+    lists:foldl(fun(FileTuple, Acc) ->
+                    case FileTuple of
+                        {File, Length} ->
+                            [{File, Length}| Acc];
+                        {File, Length, _} ->
+                            [{File, Length}| Acc];
+                    end
+                end, [], File_paths).
+
+% The peer wire protocol is referring to piece index. This is the total size of
+% the download media divided by the piece size. However when the download media
+% contains multiple files then the files will be concatenated in the order
+% used in the metainfo and then divided by the piece size. File operation are,
+% surprisingly, unaware of piece index and instead requires a file path, an
+% offset and a byte size. This function will create a list with the mapping
+% between piece index and file information.
+create_file_mapping(File_paths, Piece_size) ->
+    Unified = create_file_mapping__unify_file_list(File_paths),
+
+    Mapping = create_file_mapping1(Unified, Piece_size, 0, []),
+    {ok, Mapping}.
+
+create_file_mapping1([], Piece_size, Current_index, Acc) ->
+    Acc;
+create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Acc) ->
+    % Calculate the amount of whole pieces
+    Pieces_num = Length div Piece_size,
+    % Calculate the amount of remaining bytes in the last piece
+    Piece_rem = Length rem Piece_size,
+
+    % Calulate the index which the next recursion should start from
+    Next_index = Current_index + Piece_num,
+
+    % Subtract 1 from the next index to stay within the range
+    Index_seq = lists:seq(Current_index, Next_index - 1),
+
+    % Creating a list of tuples with the values:
+    % {Piece_index, File_path, Offset_in_bytes, Length_in_bytes}
+    File_mapping = [{Index, File, Index * Piece_size, Piece_size} ||
+                    Index <- Index_seq],
+
+    case Piece_rem =:= 0 of
+        false ->
+            create_file_mapping1(Rest_files,
+                                 Piece_size,
+                                 Next_index,
+                                 [{Next_index, File, Index * Piece_size, Piece_rem}],
+                                 Acc ++ File_mapping);
+        true ->
+            create_file_mapping1(Rest_files,
+                                 Piece_size,
+                                 Next_index,
+                                 Acc ++ File_mapping)
+    end.
+
+create_file_mapping1([], Piece_size, Current_index, Piece_rem, Acc) ->
+    % NOTE Piece_rem already contains the current index
+    Acc ++ Piece_rem;
+create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Remainder, Acc) ->
+    % Get the size from the previous piece to calulate the remaining
+    % portion of that piece from this file.
+    [{_, _, _, Previous_size}] = Remainder,
+    Previous_piece_rem = Piece_size - Previous_size,
+
+    % Since a part of the beginning of this file will be a part of the previous
+    % piece, it will have to be removed from the total length of this file, to
+    % know the divisible size and its remainder.
+    Remaining_file_size = Length - Previous_piece_rem,
+
+    Piece_num = Remaining_file_size div Piece_size,
+    Piece_rem = Remaining_file_size rem Piece_size,
+
+    % Calulate the index which the next recursion should start from
+    Next_index = Current_index + Piece_num,
+
+    % Subtract 1 from the next index to stay within the range
+    Index_seq = lists:seq(Current_index, Next_index - 1),
+
+    % Creating a list of tuples with the values:
+    % {Piece_index, File_path, Offset_in_bytes, Length_in_bytes}
+    File_mapping = [{Index, File, Index * Piece_size, Piece_size} ||
+                    Index <- Index_seq],
+
+    case Piece_rem =:= 0 of
+        false ->
+            create_file_mapping1(Rest_files,
+                                 Piece_size,
+                                 Next_index,
+                                 [{Next_index, File, Index * Piece_size, Piece_rem}],
+                                 Acc ++ File_mapping);
+        true ->
+            create_file_mapping1(Rest_files,
+                                 Piece_size,
+                                 Next_index,
+                                 Acc ++ File_mapping)
+    end.
+
+
+%% Creating a tupled list where the first element of the tuple is the index
+%% value and the second value is a value of the input list.
+index_list(List) when is_list(List) ->
+    New_list = index_list1(List, 0, []),
+    {ok, New_list}.
+
+index_list1([], _Counter, Acc) ->
+    lists:reverse(Acc);
+index_list1([H| Rest], Counter, Acc) ->
+    index_list1(Rest, (Counter + 1), [{Counter, H}| Acc]).
 
 read_term_from_file(Filename) ->
     {ok, Data} = file:read_file(Filename),

@@ -2,6 +2,8 @@
 %%% @todo read up on edoc
 %%% @doc torrent_gen, this is the interface to interact with the
 %%% torrents.
+%%% Messages:
+%%%
 %%% @end
 %%%-------------------------------------------------------------------
 
@@ -25,6 +27,7 @@
 
 -define(ANNOUNCE_TIME, 30000).
 -define(BINARY, ertorrent_binary_utils).
+-define(FILE_SRV, ertorrent_file_srv).
 -define(HASH_SRV, ertorrent_hash_srv).
 -define(METAINFO, ertorrent_metainfo).
 -define(SETTINGS_SRV, ertorrent_settings_srv).
@@ -59,7 +62,9 @@
 
 -record(state, {announce::string(),
                 announce_ref::reference(), % Timer reference for tracker announcements
+                assigned_pieces::list(), % Tuplelist with the assigned piece index and the peer's id.
                 bitfield::<<>>, % Our bitfield for bookkeeping and peer messages
+                bitfields::list(), % Current peers' bitfield e.g. [{peer's id (not peer_id), bitfield}]
                 compact, % The format of the tracker announcements, 0 = non-compact, 1 = compact
                 downloaded::integer(), % Tracker information about how much has been downloaded
                 event::event_type(),
@@ -311,11 +316,44 @@ handle_info({tracker_announce, Response}, State) ->
 
     {noreply, State};
 
-%% A peer became inactive so it's time to find a replacement
-handle_info({torrent_s_peer_inactive, ID}, State) ->
+% Bitfield from a newly initialized peer_w
+handle_info({torrent_s_peer_rx_bitfield, ID, Bitfield}, State) ->
+    New_bitfields = [Bitfield| State#state.bitfields],
+
     {noreply, State};
 
-handle_info({torrent_s_read_piece_req, From, Info_hash, Piece_idx}, State) ->
+% Requesting the bitfield for the torrent's current status
+handle_info({torrent_s_peer_tx_bitfield_req, ID, Bitfield}, State) ->
+    New_bitfields = [Bitfield| State#state.bitfields],
+
+    {noreply, State};
+
+%% A peer became inactive so it's time to find a replacement
+handle_info({torrent_s_peer_w_terminate, ID, Current_piece_index}, State) ->
+    % Remove the peer_w's bitfield
+    New_bitfields = lists:keytake(ID, 1, State#state.bitfields),
+
+    % Add the assigned piece index to the list again if it wasn't finished
+
+    % Fire up a new peer_w
+    {noreply, State};
+
+handle_info({torrent_s_peer_new_piece_req, ID, Piece_idx, Piece_data}, State) ->
+    {noreply, State};
+
+handle_info({torrent_s_file_read_piece_res, From, {Piece_idx, Piece_size}, State) ->
+    % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
+
+handle_info({torrent_s_file_read_piece_req, From, Info_hash, Piece_idx}, State) ->
+    % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
+
+handle_info({torrent_s_file_write_piece_res, From, Info_hash, Piece_idx}, State) ->
+    % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
+
+handle_info({torrent_s_file_write_piece_req, From, Info_hash, Piece_idx}, State) ->
     % TODO lookup offsets for the piece index and determine with file its located in
     {noreply, State};
 
