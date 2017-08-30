@@ -166,8 +166,8 @@ complete_piece(State) ->
 init([ID, Info_hash, Peer_id, Socket, Torrent_pid]) when is_atom(ID) ->
     {ok, #state{id=ID,
                 peer_id=Peer_id, % TODO Should this be retreived from settings_srv?
-                peer_state=#peer_state{choked = true,
-                                       interested = true},
+                peer_choked = true,
+                peer_interested = true,
                 socket=Socket,
                 torrent_info_hash=Info_hash,
                 torrent_pid=Torrent_pid}}.
@@ -245,7 +245,7 @@ handle_info({peer_srv_tx_piece, Index, Hash, Data}, State) ->
                                    true -> true;
                                    false -> false
                                end
-                           end, State#state.cached_requests
+                           end, State#state.request_buffer
                        ),
 
     % Respond to the pending requests and compile a list with the served
@@ -283,7 +283,7 @@ handle_info({peer_srv_tx_piece, Index, Hash, Data}, State) ->
                             end, Served_requests
                          ),
 
-    New_state = State#state{cached_requests = Remaining_requests,
+    New_state = State#state{request_buffer = Remaining_requests,
                             outgoing_piece_queue = Outgoing_pieces},
 
     {noreply, New_state};
@@ -329,14 +329,14 @@ handle_info({tcp, _S, <<?REQUEST, Index:32/big, Begin:32/big, Length:32/big>>}, 
 
             New_state = State;
         false ->
-            % If the requested piece ain't cached, send a request to read the
-            % piece form disk and meanwhile cache the request.
-            Cached_requests = [{request, Index, Begin, Length}|
-                               State#state.cached_requests],
+            % If the requested piece ain't buffered, send a request to read the
+            % piece form disk and meanwhile buffer the request.
+            Request_buffer = [{request, Index, Begin, Length}|
+                              State#state.request_buffer],
 
             State#state.peer_srv_pid ! {peer_w_piece_req, self(), Index},
 
-            New_state = State#state{cached_requests=Cached_requests}
+            New_state = State#state{request_buffer=Request_buffer}
     end,
 
     {noreply, New_state};
@@ -389,16 +389,14 @@ handle_info({tcp, _S, <<?UNCHOKE>>}, State) ->
     State#state.peer_srv_pid ! {peer_w_unchoke, State#state.id},
 
     % Updating the peer state
-    New_peer_state = State#state.peer_state#peer_state{choked = false},
-    New_state = State#state{peer_state = New_peer_state},
+    New_state = State#state{peer_choked = false},
 
     {noreply, New_state};
 handle_info({tcp, _S, <<?INTERESTED>>}, State) ->
     State#state.peer_srv_pid ! {peer_w_interested, State#state.id},
 
     % Updating the peer state
-    New_peer_state = State#state.peer_state#peer_state{interested = true},
-    New_state = State#state{peer_state = New_peer_state},
+    New_state = State#state{peer_interested = true},
 
     {noreply, New_state};
 % TODO figure out how to handle not interested
@@ -406,8 +404,7 @@ handle_info({tcp, _S, <<?NOT_INTERESTED>>}, State) ->
     State#state.peer_srv_pid ! {peer_w_not_interested, State#state.id},
 
     % Updating the peer state
-    New_peer_state = State#state.peer_state#peer_state{interested = false},
-    New_state = State#state{peer_state = New_peer_state},
+    New_state = State#state{peer_interested = false},
 
     {noreply, New_state};
 handle_info({tcp, _S, <<?CANCEL, Index:32/big, Begin:32/big, Len:32/big>>},
@@ -420,7 +417,7 @@ handle_info({tcp, _S, <<?CANCEL, Index:32/big, Begin:32/big, Len:32/big>>},
                                         _ -> true
                                     end
                                 end,
-                                State#state.cached_requests
+                                State#state.request_buffer
                             ),
 
     % Check if there's any remaining requests for the same piece, otherwise
@@ -432,7 +429,7 @@ handle_info({tcp, _S, <<?CANCEL, Index:32/big, Begin:32/big, Len:32/big>>},
         _ -> New_tx_pieces = State#state.outgoing_piece_queue
     end,
 
-    New_state = State#state{cached_requests = New_buffered_requests,
+    New_state = State#state{request_buffer = New_buffered_requests,
                             outgoing_piece_queue = New_tx_pieces},
 
     {noreply, New_state};

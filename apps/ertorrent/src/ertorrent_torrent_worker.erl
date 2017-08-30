@@ -341,7 +341,7 @@ handle_info({torrent_s_peer_w_terminate, ID, Current_piece_index}, State) ->
 handle_info({torrent_s_peer_new_piece_req, ID, Piece_idx, Piece_data}, State) ->
     {noreply, State};
 
-handle_info({torrent_s_file_read_piece_res, From, {Piece_idx, Piece_size}, State) ->
+handle_info({torrent_s_file_read_piece_res, From, {Piece_idx, Piece_size}}, State) ->
     % TODO lookup offsets for the piece index and determine with file its located in
     {noreply, State};
 
