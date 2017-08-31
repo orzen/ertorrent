@@ -57,7 +57,7 @@ create_file_mapping(File_paths, Piece_size) ->
     {ok, Mapping}.
 
 % create_file_mapping1/4 is used during even piece conditions
-create_file_mapping1([], Piece_size, Current_index, Acc) ->
+create_file_mapping1([], _Piece_size, _Current_index, Acc) ->
     Acc;
 create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Acc) ->
     % Calculate the amount of whole pieces
@@ -91,7 +91,7 @@ create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Ac
     end.
 
 % create_file_mapping1/5 is used during uneven piece conditions
-create_file_mapping1([], Piece_size, Current_index, Remaining_piece, Acc) ->
+create_file_mapping1([], _Piece_size, _Current_index, Remaining_piece, Acc) ->
     % NOTE Piece_rem already contains the current index
     Acc ++ Remaining_piece;
 create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Remainder, Acc) ->
@@ -124,7 +124,7 @@ create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Re
                     {Piece_index, Element_index} <- Zipped_indices ],
 
     % Extract the first piece of the file to adjust values
-    [{F_piece_index, F_file, F_offset, _}| Rest] = File_mapping,
+    [{F_piece_index, F_file, _F_offset, _F_piece_size}| Rest] = File_mapping,
 
     % Adjust the offset to 0 and set the size to the previously calculated size
     New_first = {F_piece_index, F_file, 0, First_size},
@@ -215,7 +215,22 @@ unify_file_list_output_test() ->
 
     ?assert(Actual_output =:= Expected_output).
 
-create_file_mapping_output_test() ->
+create_file_mapping_single_file_test() ->
+    Input_files = [{"/home/user/media/foo", 10000}],
+
+    Input_piece_size = 2000,
+
+    Expected_output = [{0,"/home/user/media/foo",0,2000},
+                       {1,"/home/user/media/foo",2000,2000},
+                       {2,"/home/user/media/foo",4000,2000},
+                       {3,"/home/user/media/foo",6000,2000},
+                       {4,"/home/user/media/foo",8000,2000}],
+
+    {ok, Actual_output} = create_file_mapping(Input_files, Input_piece_size),
+
+    ?assert(Actual_output =:= Expected_output).
+
+create_file_mapping_multiple_files_test() ->
     Input_files = [{"/home/user/media/foo", 11000},
                    {"/home/user/media/bar", 9000, "24ddba2b44f5991b636b04be9ab29535"}],
 
@@ -233,7 +248,6 @@ create_file_mapping_output_test() ->
                        {9,"/home/user/media/bar",7000,2000}],
 
     {ok, Actual_output} = create_file_mapping(Input_files, Input_piece_size),
-    ?debugFmt("~p~n", [Actual_output]),
 
     ?assert(Actual_output =:= Expected_output).
 
