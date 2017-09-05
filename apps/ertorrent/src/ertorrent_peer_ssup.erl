@@ -16,9 +16,9 @@ init(_Arg) ->
 
     {ok, Listen_socket} = gen_tcp:listen(37557, [{active, once}, {packet, line}]),
 
-    Peer_in_specs = {ertorrent_peer_in,
-                     {ertorrent_peer_in, start_link, [Listen_socket]},
-                     transient, 60*1000, worker, [ertorrent_peer_in]},
+    Peer_in_specs = {ertorrent_peer_accept,
+                     {ertorrent_peer_accept, start_link, [Listen_socket]},
+                     transient, 60*1000, worker, [ertorrent_peer_accept]},
 
     Peer_sup_specs = {ertorrent_peer_sup,
                       {ertorrent_peer_sup, start_link, []},

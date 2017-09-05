@@ -11,7 +11,7 @@
 -record(state, {accept_socket,
                 listen_socket}).
 
--define(PEER_SUP, ertorrent_peer_sup).
+-define(PEER_SSUP, ertorrent_peer_ssup).
 -define(PEER_SRV, ertorrent_peer_srv).
 
 init([Listen_socket, Port]) ->
@@ -33,7 +33,7 @@ handle_cast({accept}, State = #state{listen_socket=Listen_socket}) ->
 handle_info({tcp, _S, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
                         Peer_id:160>>}, State) ->
     % Spawn another listen socket
-    ?PEER_SUP:start_worker(State#state.listen_socket),
+    ?PEER_SSUP:start_worker(State#state.listen_socket),
 
     % Spawn a new peer with the accept socket
     ?PEER_SRV:add_rx_peer(State#state.accept_socket,

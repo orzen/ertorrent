@@ -60,16 +60,18 @@ create_file_mapping(File_paths, Piece_size) ->
 create_file_mapping1([], _Piece_size, _Current_index, Acc) ->
     Acc;
 create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Acc) ->
-    % Calculate the amount of whole pieces
+    % Calculate the amount of complete pieces
     Piece_num = Length div Piece_size,
-    % Calculate the amount of remaining bytes in the last piece
+    % Calculate the amount of remaining bytes in the incomplete piece
     Piece_rem = Length rem Piece_size,
 
-    % Calulate the index which the next recursion should start from
-    Next_index = Current_index + Piece_num,
+    % Calulate the index which the next file should start from. Piece indecies
+    % start from 0.
+    Next_file_index = Current_index + Piece_num,
 
-    % Subtract 1 from the next index to stay within the range
-    Index_seq = lists:seq(Current_index, Next_index - 1),
+    % Subtract 1 from the next file's starting index to get the current file's
+    % last index and create a the piece index sequence for the current file.
+    Index_seq = lists:seq(Current_index, Next_file_index - 1),
 
     % Creating a list of tuples with the values:
     % {Piece_index, File_path, Offset_in_bytes, Length_in_bytes}
@@ -80,70 +82,83 @@ create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Ac
         false ->
             create_file_mapping1(Rest_files,
                                  Piece_size,
-                                 Next_index,
-                                 [{Next_index, File, Next_index * Piece_size, Piece_rem}],
+                                 Next_file_index,
+                                 {File, Next_file_index * Piece_size, Piece_rem},
                                  Acc ++ File_mapping);
         true ->
             create_file_mapping1(Rest_files,
                                  Piece_size,
-                                 Next_index,
+                                 Next_file_index,
                                  Acc ++ File_mapping)
     end.
 
 % create_file_mapping1/5 is used during uneven piece conditions
-create_file_mapping1([], _Piece_size, _Current_index, Remaining_piece, Acc) ->
-    % NOTE Piece_rem already contains the current index
-    Acc ++ Remaining_piece;
+create_file_mapping1([], _Piece_size, Current_index, Remaining_piece, Acc) ->
+    {File, Offset, Length} = Remaining_piece,
+
+    Last_piece = {Current_index, File, Offset, Length},
+
+    Acc ++ [Last_piece];
 create_file_mapping1([{File, Length}| Rest_files], Piece_size, Current_index, Remainder, Acc) ->
     % Get the size from the previous piece to calulate the remaining
     % portion of that piece from this file.
-    [{_, _, _, Previous_size}] = Remainder,
-
-    % Calculate the size of the first section of this file since there were a
-    % remainder of the previous file.
-    First_size = Piece_size - Previous_size,
+    {_, _, Remaining_size} = Remainder,
 
     % Add the size of the remainder to the file size
-    New_total_size = Length + Previous_size,
+    New_total_size = Length + Remaining_size,
 
+    % Calculate the amount of complete pieces
     Piece_num = New_total_size div Piece_size,
+    % Calculate the amount of remaining bytes in the incomplete piece
     Piece_rem = New_total_size rem Piece_size,
 
-    % Calulate the index which the next recursion should start from
-    Next_index = Current_index + Piece_num,
+    % Calulate the index which the next file should start from. Piece indecies
+    % start from 0.
+    Next_file_index = Current_index + Piece_num,
 
-    % Subtract 1 from the next index to stay within the range
-    Piece_index_seq = lists:seq(Current_index, Next_index - 1),
+    % Subtract 1 from the next file's starting index to get the current file's
+    % last index and create a the piece index sequence for the current file.
+    Piece_index_seq = lists:seq(Current_index, Next_file_index - 1),
+
+    % The element sequence is used to calculate the file offset for each piece
+    % so this needs to be reset to 0 by the beginning of a new file. Subtract 1
+    % from the total amount of piece to compensate for 0-based index.
     Element_index_seq = lists:seq(0, Piece_num - 1),
 
     Zipped_indices = lists:zip(Piece_index_seq, Element_index_seq),
 
     % Creating a list of tuples with the values:
     % {Piece_index, File_path, Offset_in_bytes, Length_in_bytes}
-    File_mapping = [{Piece_index, File, Element_index * Piece_size - Previous_size, Piece_size} ||
-                    {Piece_index, Element_index} <- Zipped_indices ],
+    Mapping_without_transition = [{Piece_index, File, Element_index * Piece_size - Remaining_size, Piece_size} ||
+                                  {Piece_index, Element_index} <- Zipped_indices ],
 
     % Extract the first piece of the file to adjust values
-    [{F_piece_index, F_file, _F_offset, _F_piece_size}| Rest] = File_mapping,
+    [{F_piece_index, F_file, _F_offset, _F_piece_size}| Rest] = Mapping_without_transition,
+
+    % Calculate the size of the first section of this file since there were a
+    % remainder of the previous file.
+    Complementary_size = Piece_size - Remaining_size,
 
     % Adjust the offset to 0 and set the size to the previously calculated size
-    New_first = {F_piece_index, F_file, 0, First_size},
+    New_first = {F_file, 0, Complementary_size},
 
     % Create a list with the seam between the the previous file and this file
     % and put it together with the file mapping.
-    New_file_mapping = [Remainder ++ [New_first]] ++ Rest,
+    New_file_mapping = [{F_piece_index, [Remainder, New_first]}] ++ Rest,
 
     case Piece_rem =:= 0 of
         false ->
             create_file_mapping1(Rest_files,
                                  Piece_size,
-                                 Next_index,
-                                 [{Next_index, File, (Next_index - 1) * Piece_size + First_size, Piece_rem}],
+                                 Next_file_index,
+                                 {File,
+                                  (Piece_num - 1) * Piece_size + Complementary_size,
+                                  Piece_rem},
                                  Acc ++ New_file_mapping);
         true ->
             create_file_mapping1(Rest_files,
                                  Piece_size,
-                                 Next_index,
+                                 Next_file_index,
                                  Acc ++ New_file_mapping)
     end.
 
@@ -241,7 +256,8 @@ create_file_mapping_multiple_files_test() ->
                        {2,"/home/user/media/foo",4000,2000},
                        {3,"/home/user/media/foo",6000,2000},
                        {4,"/home/user/media/foo",8000,2000},
-                       [{5,"/home/user/media/foo",10000,1000},{5,"/home/user/media/bar",0,1000}],
+                       {5,[{"/home/user/media/foo",10000,1000},
+                           {"/home/user/media/bar",0,1000}]},
                        {6,"/home/user/media/bar",1000,2000},
                        {7,"/home/user/media/bar",3000,2000},
                        {8,"/home/user/media/bar",5000,2000},
