@@ -32,7 +32,7 @@
 -define(METAINFO, ertorrent_metainfo).
 -define(SETTINGS_SRV, ertorrent_settings_srv).
 -define(TRACKER, ertorrent_tracker_dispatcher).
--define(TORRENT_SRV, ertorrent_torrent_srv).
+-define(PEER_SRV, ertorrent_peer_srv).
 -define(UTILS, ertorrent_utils).
 
 % EXECUTION ORDER:
@@ -70,6 +70,7 @@
                 event::event_type(),
                 files::tuple(), % Files tuple e.g. {files, multiple, Name, Files_list}
                 file_paths::list(),
+                file_worker::integer(), % The ID for file workers are unique integers
                 info_hash::string(),
                 left::integer(), % Tracker information about how much is left to download
                 internal_state:: initializing | active | inactive,
@@ -79,6 +80,7 @@
                 peers::list(),
                 peer_id::string(), % Our unique peer id e.g. ER-1-0-0-<sha1>
                 pieces::list(), % Piece hashes from the metainfo
+                piece_layout::list() % A translation between piece index and file offset, e.g. [{Piece_idx, File_path, File_offset, Length}]
                 peers_max::integer(), % The maximum amount of peers this torrent is allowed to have
                 peers_cur::integer(), % Current number of active peers
                 start_when_ready::boolean(), % TODO use this, if the torrent should start regardless of user input. Should also be used if you want to activate the torrent whenever the torrent is shifting state from initializing to inactive.
@@ -106,7 +108,8 @@ stop(Name) when is_atom(Name) ->
 
 %% INTERNAL FUNCTIONS
 
-% Time triggered function
+% @doc Timer function for when to perform tracker announcements
+% @end
 tracker_announce_loop(State) ->
     {ok, _Request_id} = ?TRACKER:announce(State#state.announce,
                                           State#state.info_hash,
@@ -157,6 +160,9 @@ start_torrent(State) ->
     {ok, New_state}.
 
 %%% Callback module
+% TODO:
+% - Gather every value fetched from the metainfo, re-group and maybe split up
+% the contents of this function.
 init([Info_hash, Metainfo]) ->
     Peer_id = string:concat("ET-0-0-1", string:chars($ , 12)),
     % Replacing reserved characters
@@ -169,6 +175,7 @@ init([Info_hash, Metainfo]) ->
     % Prepare a list of pieces since, the piece section of the metainfo
     % consists of a concatenated binary of all the pieces.
     {ok, Pieces_bin} = ?METAINFO:get_info_value(<<"pieces">>, Metainfo),
+
     Pieces = ?UTILS:piece_binary_to_list(Pieces_bin),
 
     Resolved_files = ?METAINFO:resolve_files(Metainfo),
@@ -184,11 +191,15 @@ init([Info_hash, Metainfo]) ->
                                             [Full_path| Acc]
                                         end, [], Files_list),
 
-            % Need to preserve the order
-            Filenames = lists:reverse(Files_reverse);
+            % Preserve the order
+            File_paths = lists:reverse(Files_reverse);
         {files, single, Name, _} ->
-            Filenames = [Location ++ '/' ++ Name]
+            File_paths = [Location ++ '/' ++ Name]
     end,
+
+    % Calculate the piece layout over the file structure
+    % TODO rename create_file_mapping
+    Piece_layout = ?UTILS:create_file_mapping(File_paths, Piece_length)
 
     % THIS SHOULD BE THE END OF THE INITIALIZATION
     % hash_files is an async call and we should be ready to serve when we
@@ -200,12 +211,14 @@ init([Info_hash, Metainfo]) ->
                    downloaded = 0,
                    event = stopped,
                    files = Resolved_files,
+                   file_paths = File_paths,
                    info_hash = Info_hash,
                    left = 0,
                    length = Length,
                    metainfo = Metainfo,
                    peer_id = Peer_id_encoded,
                    pieces = Pieces,
+                   piece_layout = Piece_layout,
                    uploaded = 0},
 
     ?DEBUG("new torrent " ++ Info_hash),
@@ -223,11 +236,16 @@ handle_call({list}, _From, _State) ->
 
 %% User input that should change the torrent state from inactive to active
 %% TODO finish me!
+% @doc API for starting a torrent
+% @end
 handle_cast({start, From}, State) ->
 
     case State#state.internal_state of
         inactive ->
             _State = start_doing_stuff;
+            % TODO
+            % - spawn file_w
+            % - spawn peer_w
         active ->
             _State = already_doing_stuff;
         initializing ->
@@ -304,7 +322,7 @@ handle_info({tracker_announce, Response}, State) ->
             {Peers_activate, Peers_rest} = lists:split(Missing_nbr_peers, Peer_list),
 
             % Tell the torrent_s to start the peers
-            ?TORRENT_SRV ! {torrent_w_add_rx_peers, Peers_activate}
+            ?PEER_SRV ! {torrent_w_add_rx_peers, Peers_activate}
     end,
 
     % Assume that the maximum amount of peers has been acheived until a message
@@ -316,45 +334,75 @@ handle_info({tracker_announce, Response}, State) ->
 
     {noreply, State};
 
-% Bitfield from a newly initialized peer_w
-handle_info({torrent_s_peer_rx_bitfield, ID, Bitfield}, State) ->
-    New_bitfields = [Bitfield| State#state.bitfields],
+% @doc A peer worker received a peers bitfield. Store it for the piece
+% scheduling. Note: The tag does not contain a suffix (res/req) due to being a
+% one-way communication.
+% @end
+handle_info({peer_w_rx_bitfield, ID, Bitfield}, State) ->
+    New_bitfields = [{ID, Bitfield}| State#state.bitfields],
+
+    New_state = State#state.bitfields,
+    % TODO
+    % - update the algorithm module
+
+    {noreply, New_state};
+
+% @doc A peer worker need to serve the current bitfield to a connecting peer.
+% @end
+handle_info({peer_w_tx_bitfield_req, ID}, State) ->
+    ID ! {torrent_w_tx_bitfield_res, State#state.bitfield},
 
     {noreply, State};
 
-% Requesting the bitfield for the torrent's current status
-handle_info({torrent_s_peer_tx_bitfield_req, ID, Bitfield}, State) ->
-    New_bitfields = [Bitfield| State#state.bitfields],
-
+% @doc A peer worker needs to fill up its work queue. Calculate the next piece
+% to request from the peer.
+% @end
+handle_info({peer_w_rx_piece_req, ID, Piece_idx, Piece_data}, State) ->
+    % TODO
+    % - figure out if this only happens when a peer worker finished a piece
+    % - check that we haven't written the same piece already
     {noreply, State};
 
-%% A peer became inactive so it's time to find a replacement
-handle_info({torrent_s_peer_w_terminate, ID, Current_piece_index}, State) ->
+% @doc A peer has requested a non-cached piece and it have to be read from
+% disk. Translate from piece index to file, offset, length and send a request
+% to the file worker.
+% @end
+handle_info({peer_w_tx_piece_req, From, {Piece_idx}}, State) ->
+    case lists:keyfind(Piece_idx, 1, State#state.piece_layout) of
+        {Piece_idx, File, Offset, Length} ->
+            % TODO
+            % - add the request in the request buffer
+            State#state.file_worker ! {torrent_w_read_offset_req, }
+            ok;
+        false ->
+            ?WARNING("failed to lookup file offset for piece index: " ++ Piece_idx)
+    end,
+    {noreply, State};
+
+% @doc The file worker responded to a previous read offset request. Forward the
+% piece data to the peer worker that requested it.
+% @end
+handle_info({file_w_read_offset_res, From, {Piece_idx}}, State) ->
+    % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
+
+handle_info({file_w_write_offset_res, From, Info_hash, Piece_idx}, State) ->
+    % TODO lookup offsets for the piece index and determine with file its located in
+    {noreply, State};
+
+% @doc A peer worker terminated. Figure out which peer to connect to and fire
+% up a new peer worker if it's necessary.
+% @end
+handle_info({peer_w_terminate, ID, Current_piece_index}, State) ->
     % Remove the peer_w's bitfield
     New_bitfields = lists:keytake(ID, 1, State#state.bitfields),
+
+    % TODO
+    % - trigger an update of the algorithm module
 
     % Add the assigned piece index to the list again if it wasn't finished
 
     % Fire up a new peer_w
-    {noreply, State};
-
-handle_info({torrent_s_peer_new_piece_req, ID, Piece_idx, Piece_data}, State) ->
-    {noreply, State};
-
-handle_info({torrent_s_file_read_piece_res, From, {Piece_idx, Piece_size}}, State) ->
-    % TODO lookup offsets for the piece index and determine with file its located in
-    {noreply, State};
-
-handle_info({torrent_s_file_read_piece_req, From, Info_hash, Piece_idx}, State) ->
-    % TODO lookup offsets for the piece index and determine with file its located in
-    {noreply, State};
-
-handle_info({torrent_s_file_write_piece_res, From, Info_hash, Piece_idx}, State) ->
-    % TODO lookup offsets for the piece index and determine with file its located in
-    {noreply, State};
-
-handle_info({torrent_s_file_write_piece_req, From, Info_hash, Piece_idx}, State) ->
-    % TODO lookup offsets for the piece index and determine with file its located in
     {noreply, State};
 
 %% Response form hashing a single piece
@@ -366,8 +414,8 @@ handle_info({torrent_s_hash_piece_resp, Index, Hash}, State) ->
 
 %% Response from the initial hashing
 %% TODO update the values of downloaded, left
-handle_info({torrent_s_hash_files_resp, Hashes}, State) ->
-    ?DEBUG("recv torrent_s_hash_files_resp"),
+handle_info({hash_s_hash_files_res, Hashes}, State) ->
+    ?DEBUG("recv hash_s_hash_files_res"),
 
     % Construct a list of the to list in the form [{X_hash, Y_hash}, {X_hash1,
     % Y_hash1}]. Now the comparison can be done in one iteration of the ziped

@@ -135,10 +135,10 @@ handle_cast({peer_srv_add_peer_out, {Address, Port, Info_hash, Socket}}, State) 
         {ok, Socket} ->
             Ret = supervisor:start_child(?PEER_SUP,
                                          [ID,
-                                             [ID,
-                                              Info_hash,
-                                              State#state.own_peer_id,
-                                              Socket]]),
+                                          [ID,
+                                           Info_hash,
+                                           State#state.own_peer_id,
+                                           Socket]]),
             case Ret of
                 % TODO Atm the handling of the {ok, _} responses is redundant.
                 % It's unlikely that both will be used however in the writing

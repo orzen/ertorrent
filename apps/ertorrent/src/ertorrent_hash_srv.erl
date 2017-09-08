@@ -189,7 +189,7 @@ handle_info({hashed_piece, {Name, Piece_index, Hash}}, State) ->
             % Remove the completed job from the list
             New_jobs = lists:keydelete(Name, 2, State#state.jobs),
             ?DEBUG("finished hashing " ++ Name),
-            New_job#job.from ! {hashed_files, {Name, Pieces}};
+            New_job#job.from ! {hash_s_hashed_files, {Name, Pieces}};
         false ->
             New_jobs = lists:keyreplace(Name, 2, State#state.jobs, New_job)
     end,

@@ -50,6 +50,8 @@ unify_file_list(File_paths) ->
 % surprisingly, unaware of piece index and instead requires a file path, an
 % offset and a byte size. This function will create a list with the mapping
 % between piece index and file information.
+% TODO
+% - rename Piece_size to Piece_length since it's the term used in the metainfo
 create_file_mapping(File_paths, Piece_size) ->
     {ok, Unified} = unify_file_list(File_paths),
 

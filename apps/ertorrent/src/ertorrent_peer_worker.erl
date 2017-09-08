@@ -180,9 +180,9 @@ terminate(Reason, State) ->
 
     ok = gen_tcp:close(State#state.socket),
 
-    ?PEER_SRV ! {peer_w_terminate,
-                 State#state.id,
-                 State#state.incoming_piece_index},
+    State#state.torrent_pid ! {peer_w_terminate,
+                               State#state.id,
+                               State#state.incoming_piece_index},
 
     ok.
 

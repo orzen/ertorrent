@@ -44,12 +44,12 @@ handle_call(terminate, _From, State) ->
 
 handle_cast({pread, From, Info_hash, File, Offset}, State) ->
     case lists:keyfind(Info_hash, 2) of
-        {Uid, Info_hash} ->
+        {ID, Info_hash} ->
             Worker = Uid,
             New_workers = State#state.workers;
         false ->
-            Uid = utils:unique_id(),
-            Worker = supervisor:start_child(?FILE_SUP, [Uid, Info_hash]),
+            ID = erlang:unique_integer(),
+            Worker = supervisor:start_child(?FILE_SUP, [ID, Info_hash]),
             New_workers = State#state{workers=[Worker | State#state.workers]}
     end,
 
