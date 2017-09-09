@@ -169,6 +169,10 @@ start_torrent(State) ->
 % - Gather every value fetched from the metainfo, re-group and maybe split up
 % the contents of this function.
 init([Info_hash, Metainfo, Start_when_ready]) ->
+    ?DEBUG("starting to initialize torrent worker: \ninfo_hash: " ++ Info_hash
+           ++ "\nmetainfo: " ++ Metainfo ++ "\nstart_when_ready: " ++
+           Start_when_ready),
+
     % TODO move Peer_id to the settings_srv
     Peer_id = string:concat("ET-0-0-1", string:chars($ , 12)),
     % Replacing reserved characters

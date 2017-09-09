@@ -2,11 +2,12 @@
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { ertorrent_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    cowboy
    ]},
+  {mod, {ertorrent_app, []}},
   {env,[]},
   {modules, [ertorrent_app,
              ertorrent_bencode,
@@ -22,6 +23,8 @@
              ertorrent_peer_ssup,
              ertorrent_peer_sup,
              ertorrent_peer_worker,
+             ertorrent_rest_v1_sup,
+             ertorrent_rest_v1_top,
              ertorrent_settings_srv,
              ertorrent_sup,
              ertorrent_torrent_srv,

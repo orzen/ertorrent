@@ -5,16 +5,23 @@
 -define(PEER, ertorrent_peer_ssup).
 -define(TORRENT, ertorrent_torrent_ssup).
 -define(SETTINGS, ertorrent_settings_sup).
+-define(REST_V1, ertorrent_rest_v1_sup).
 
--export([start_link/0,
+-export([start/0,
+         start_link/0,
          init/1]).
+
+-include("ertorrent_log.hrl").
+
+start() ->
+    supervisor:start({local, ?MODULE}, ?MODULE, []).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init(_Arg) ->
-    Max_restart = 0,
-    Max_time = 5,
+    Max_restart = 10,
+    Max_time = 10,
 
     Sup_flags = {one_for_one, Max_restart, Max_time},
 
@@ -30,6 +37,10 @@ init(_Arg) ->
                   {?PEER, start_link, []},
                   transient, infinity, supervisor, [?PEER]},
 
+    Rest_v1_specs = {?REST_V1,
+                     {?REST_V1, start_link, []},
+                     transient, infinity, supervisor, [?REST_V1]},
+
     Tracker_specs = {?TRACKER,
                      {?TRACKER, start_link, []},
                      transient, infinity, supervisor, [?TRACKER]},
@@ -41,5 +52,6 @@ init(_Arg) ->
     {ok, {Sup_flags, [Settings_specs,
                       Hash_specs,
                       Peer_specs,
+                      %Rest_v1_specs,
                       Tracker_specs,
                       Torrent_specs]}}.

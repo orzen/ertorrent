@@ -7,6 +7,7 @@ Questions:
   a gen_server. How would I go about to give, the PID of the second supervisor,
   as an argument to the gen_server?
 - Are the three steps a sufficient boot separation? Check ertorrent_app.erl
+- Check out edown if it could be used for documentation?
 
 General:
 - Figure out the piece format of the metainfo
