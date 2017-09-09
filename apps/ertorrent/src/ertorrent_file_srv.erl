@@ -45,7 +45,7 @@ handle_call(terminate, _From, State) ->
 handle_cast({pread, From, Info_hash, File, Offset}, State) ->
     case lists:keyfind(Info_hash, 2) of
         {ID, Info_hash} ->
-            Worker = Uid,
+            Worker = ID,
             New_workers = State#state.workers;
         false ->
             ID = erlang:unique_integer(),

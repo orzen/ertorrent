@@ -11,9 +11,11 @@
 
 -behaviour(gen_server).
 
--export([start_link/2,
+-export([activate/1,
+         deactivate/1,
          shutdown/1,
          start/1,
+         start_link/2,
          start_torrent/1,
          stop/1]).
 
@@ -73,24 +75,40 @@
                 file_worker::integer(), % The ID for file workers are unique integers
                 info_hash::string(),
                 left::integer(), % Tracker information about how much is left to download
-                internal_state:: initializing | active | inactive,
                 length::integer(), % Total length of the torrent contents
                 locations::list(),
                 metainfo,
                 peers::list(),
                 peer_id::string(), % Our unique peer id e.g. ER-1-0-0-<sha1>
                 pieces::list(), % Piece hashes from the metainfo
-                piece_layout::list() % A translation between piece index and file offset, e.g. [{Piece_idx, File_path, File_offset, Length}]
+                piece_layout::list(), % A translation between piece index and file offset, e.g. [{Piece_idx, File_path, File_offset, Length}]
                 peers_max::integer(), % The maximum amount of peers this torrent is allowed to have
                 peers_cur::integer(), % Current number of active peers
+                state:: initializing | active | inactive,
                 start_when_ready::boolean(), % TODO use this, if the torrent should start regardless of user input. Should also be used if you want to activate the torrent whenever the torrent is shifting state from initializing to inactive.
                 stats_leechers::integer(), % Stats from the tracker that might be of interest
                 stats_seeders::integer(), % Stats from the tracker that might be of interest
                 tracker_interval::integer(),
                 uploaded::integer()}).
 
+%%% Client API %%%
+
+% @doc Setting a torrent worker to the state active. The term
+% activate/deactivate is chosen so that isn't mistaken for start/1 and stop/1
+% which are common client APIs in Erlang OTP modules.
+% @end
+activate(Torrent_worker_id) ->
+    gen_server:cast(Torrent_worker_id, {activate}).
+
+% @doc Setting a torrent worker to the state inactive. The term
+% activate/deactivate is chosen so that isn't mistaken for start/1 and stop/1
+% which are common client APIs in Erlang OTP modules.
+% @end
+deactivate(Torrent_worker_id) ->
+    gen_server:cast(Torrent_worker_id, {deactivate}).
+
 % Starting server
-start_link(Info_hash_atom, [Info_hash, Metainfo, Port]) when is_atom(Info_hash_atom) ->
+start_link(Info_hash_atom, [Info_hash, Metainfo]) when is_atom(Info_hash_atom) ->
     gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo], []).
 
 % Shutting down the server
@@ -132,22 +150,9 @@ start_torrent(State) ->
                           ok ->
                               ?DEBUG("ensured path: " ++ Path);
                           {error, Reason} ->
-                              ?ERROR("failed to create path: " ++ Path)
+                              ?ERROR("failed to create path: " ++ Path ++ ", reason: " ++ Reason)
                       end
                   end, State#state.file_paths),
-
-    % Check file status
-
-    % Compile a list with files that exists on the filesystem. The only time
-    % files are expected to not exist is when the torrent is newly added. When
-    % a torrent is added the entire set of files should be created.
-    % TODO this should probably contain file sizes and should not be part of process_metainfo
-    Missing_files = lists:foldl(fun(Filename, Acc) ->
-                                    case filelib:is_file(binary_to_list(Filename)) of
-                                        false ->
-                                            [Filename| Acc]
-                                    end
-                                end, [], State#state.file_paths),
 
     % Create an update state record for the tracker announcement
     New_state_event = State#state{event=started},
@@ -159,11 +164,12 @@ start_torrent(State) ->
                                       event = started},
     {ok, New_state}.
 
-%%% Callback module
+%%% Callback functions
 % TODO:
 % - Gather every value fetched from the metainfo, re-group and maybe split up
 % the contents of this function.
-init([Info_hash, Metainfo]) ->
+init([Info_hash, Metainfo, Start_when_ready]) ->
+    % TODO move Peer_id to the settings_srv
     Peer_id = string:concat("ET-0-0-1", string:chars($ , 12)),
     % Replacing reserved characters
     Peer_id_encoded = edoc_lib:escape_uri(Peer_id),
@@ -176,16 +182,15 @@ init([Info_hash, Metainfo]) ->
     % consists of a concatenated binary of all the pieces.
     {ok, Pieces_bin} = ?METAINFO:get_info_value(<<"pieces">>, Metainfo),
 
-    Pieces = ?UTILS:piece_binary_to_list(Pieces_bin),
-
     Resolved_files = ?METAINFO:resolve_files(Metainfo),
+
+    Pieces = ?UTILS:piece_binary_to_list(Pieces_bin),
 
     Location = ?SETTINGS_SRV:get_sync(download_location),
 
     % TODO investigate support for allocate
-    % ensure_file_entries(Files),
     case Resolved_files of
-        {files, multiple, Name, Files_list} ->
+        {files, multiple, _Name, Files_list} ->
             Files_reverse = lists:foldl(fun({Path, _}, Acc) ->
                                             Full_path = Location ++ '/' ++ Path,
                                             [Full_path| Acc]
@@ -197,29 +202,42 @@ init([Info_hash, Metainfo]) ->
             File_paths = [Location ++ '/' ++ Name]
     end,
 
+    % Calculate the tracker statistics
+    % TODO
+    % - Should the tracker statistics be written to file instead?
+    Downloaded = lists:foldl(fun(File_path, Acc) ->
+                                     File_size = filelib:file_size(File_path),
+                                     Acc + File_size
+                             end, 0, File_paths),
+
+    Left = Length - Downloaded,
+
+    Uploaded = 0,
+
     % Calculate the piece layout over the file structure
     % TODO rename create_file_mapping
-    Piece_layout = ?UTILS:create_file_mapping(File_paths, Piece_length)
+    Piece_layout = ?UTILS:create_file_mapping(Resolved_files, Piece_length),
 
     % THIS SHOULD BE THE END OF THE INITIALIZATION
     % hash_files is an async call and we should be ready to serve when we
     % receive its response.
     % TODO possible race condition?
-    ?HASH_SRV:hash_files(self(), Filenames, Piece_length),
+    ?HASH_SRV:hash_files(self(), File_paths, Piece_length),
 
     State = #state{announce = Announce_address,
-                   downloaded = 0,
+                   downloaded = Downloaded,
                    event = stopped,
                    files = Resolved_files,
                    file_paths = File_paths,
                    info_hash = Info_hash,
-                   left = 0,
+                   left = Left,
                    length = Length,
                    metainfo = Metainfo,
                    peer_id = Peer_id_encoded,
                    pieces = Pieces,
                    piece_layout = Piece_layout,
-                   uploaded = 0},
+                   start_when_ready = Start_when_ready,
+                   uploaded = Uploaded},
 
     ?DEBUG("new torrent " ++ Info_hash),
 
@@ -238,24 +256,24 @@ handle_call({list}, _From, _State) ->
 %% TODO finish me!
 % @doc API for starting a torrent
 % @end
-handle_cast({start, From}, State) ->
-
-    case State#state.internal_state of
+handle_cast({start}, State) ->
+    case State#state.state of
         inactive ->
-            _State = start_doing_stuff;
             % TODO
             % - spawn file_w
             % - spawn peer_w
-        active ->
-            _State = already_doing_stuff;
-        initializing ->
-            _State = still_initializing_try_again_later;
-        _ ->
-            ?ERROR("torrent worker in a broken state: " ++
-                   atom_to_list(State#state.internal_state))
-    end,
 
-    New_state = State,
+            New_state = start_torrent(State);
+        active ->
+            New_state = State;
+        initializing ->
+            New_state = State#state{start_when_ready = true};
+        _ ->
+            New_state = State,
+
+            ?ERROR("torrent worker in a broken state: " ++
+                   atom_to_list(State#state.state))
+    end,
 
     {reply, started, New_state};
 handle_cast(stop, State) ->
@@ -288,28 +306,30 @@ handle_info({tracker_announce, Response}, State) ->
         true ->
             {ok, Peer_list} = ?BINARY:parse_peers(Peers);
         false ->
-            Peer_list = lists:foldl(fun({Peer_id, Address_bin, Port}, Acc) ->
-                                        % TODO the convertion and resolving to
-                                        % proper addresses could be moved to
-                                        % the peer_w.
+            F = fun({Peer_id, Address_bin, Port}, Acc) ->
+                    % TODO the convertion and resolving to
+                    % proper addresses could be moved to
+                    % the peer_w.
+                    Peer_id_str = binary_to_list(Peer_id),
 
-                                        % Convert the bdecoded value from binary to string
-                                        Address_str = binary_to_list(Address_bin),
+                    % Convert the bdecoded value from binary to string
+                    Address_str = binary_to_list(Address_bin),
 
-                                        % Translate address from a string to tuple.
-                                        % NOTE: This will NOT work for hostnames.
-                                        case inet:parse_address(Address_str) of
-                                            {ok, Address} ->
-                                                Address;
-                                            % If parse_address() fails, the value is most likely a hostname
-                                            {error, einval} ->
-                                                % TODO maybe it is relevant to resolve to IPv6 family as well?
-                                                % Trying to resolve the hostname to IPv4 family
-                                                {ok, Address} = inet:getaddr(Address_str, inet)
-                                        end,
+                    % Translate address from a string to tuple.
+                    % NOTE: This will NOT work for hostnames.
+                    case inet:parse_address(Address_str) of
+                        {ok, Address} ->
+                            Address;
+                        % If parse_address() fails, the value is most likely a hostname
+                        {error, einval} ->
+                            % TODO maybe it is relevant to resolve to IPv6 family as well?
+                            % Trying to resolve the hostname to IPv4 family
+                            {ok, Address} = inet:getaddr(Address_str, inet)
+                    end,
 
-                                        [{Address, Port}| Acc]
-                                    end, [], Peers)
+                    [{Address, Port, Peer_id_str}| Acc]
+                end,
+            Peer_list = lists:foldl(F, [], Peers)
     end,
 
     % TODO this should not be done every time we receive a tracker response
@@ -332,7 +352,7 @@ handle_info({tracker_announce, Response}, State) ->
                             stats_leechers = Stats_leechers,
                             stats_seeders = Stats_seeders},
 
-    {noreply, State};
+    {noreply, New_state};
 
 % @doc A peer worker received a peers bitfield. Store it for the piece
 % scheduling. Note: The tag does not contain a suffix (res/req) due to being a
@@ -341,7 +361,7 @@ handle_info({tracker_announce, Response}, State) ->
 handle_info({peer_w_rx_bitfield, ID, Bitfield}, State) ->
     New_bitfields = [{ID, Bitfield}| State#state.bitfields],
 
-    New_state = State#state.bitfields,
+    New_state = State#state{bitfields = New_bitfields},
     % TODO
     % - update the algorithm module
 
@@ -357,7 +377,8 @@ handle_info({peer_w_tx_bitfield_req, ID}, State) ->
 % @doc A peer worker needs to fill up its work queue. Calculate the next piece
 % to request from the peer.
 % @end
-handle_info({peer_w_rx_piece_req, ID, Piece_idx, Piece_data}, State) ->
+% TODO implement me
+handle_info({peer_w_rx_piece_req, _ID, _Piece_idx, _Piece_data}, State) ->
     % TODO
     % - figure out if this only happens when a peer worker finished a piece
     % - check that we haven't written the same piece already
@@ -367,33 +388,30 @@ handle_info({peer_w_rx_piece_req, ID, Piece_idx, Piece_data}, State) ->
 % disk. Translate from piece index to file, offset, length and send a request
 % to the file worker.
 % @end
-handle_info({peer_w_tx_piece_req, From, {Piece_idx}}, State) ->
-    case lists:keyfind(Piece_idx, 1, State#state.piece_layout) of
-        {Piece_idx, File, Offset, Length} ->
-            % TODO
-            % - add the request in the request buffer
-            State#state.file_worker ! {torrent_w_read_offset_req, }
-            ok;
+handle_info({peer_w_tx_piece_req, From, {Piece_index}}, State) ->
+    case lists:keyfind(Piece_index, 1, State#state.piece_layout) of
+        {Piece_index, File, Offset, Length} ->
+            State#state.file_worker ! {torrent_w_read_offset_req, {{From, Piece_index}, File, Offset, Length}};
         false ->
-            ?WARNING("failed to lookup file offset for piece index: " ++ Piece_idx)
+            ?WARNING("failed to lookup file offset for piece index: " ++ Piece_index)
     end,
     {noreply, State};
 
 % @doc The file worker responded to a previous read offset request. Forward the
 % piece data to the peer worker that requested it.
 % @end
-handle_info({file_w_read_offset_res, From, {Piece_idx}}, State) ->
+handle_info({file_w_read_offset_res, _From, {_Piece_idx}}, State) ->
     % TODO lookup offsets for the piece index and determine with file its located in
     {noreply, State};
 
-handle_info({file_w_write_offset_res, From, Info_hash, Piece_idx}, State) ->
+handle_info({file_w_write_offset_res, _From, {_Info_hash, _Piece_idx}}, State) ->
     % TODO lookup offsets for the piece index and determine with file its located in
     {noreply, State};
 
 % @doc A peer worker terminated. Figure out which peer to connect to and fire
 % up a new peer worker if it's necessary.
 % @end
-handle_info({peer_w_terminate, ID, Current_piece_index}, State) ->
+handle_info({peer_w_terminate, ID, _Current_piece_index}, State) ->
     % Remove the peer_w's bitfield
     New_bitfields = lists:keytake(ID, 1, State#state.bitfields),
 
@@ -403,17 +421,24 @@ handle_info({peer_w_terminate, ID, Current_piece_index}, State) ->
     % Add the assigned piece index to the list again if it wasn't finished
 
     % Fire up a new peer_w
-    {noreply, State};
+
+    New_state = State#state{bitfields = New_bitfields},
+
+    {noreply, New_state};
 
 %% Response form hashing a single piece
 %% TODO update the bitfield and update downloaded, left if the piece hashes match
 %% - Match the piece hashes
 %% - If piece is ok, look up a new one and ask the peer_w for that one.
-handle_info({torrent_s_hash_piece_resp, Index, Hash}, State) ->
+handle_info({torrent_s_hash_piece_resp, _Index, _Hash}, State) ->
     {noreply, State};
 
 %% Response from the initial hashing
 %% TODO update the values of downloaded, left
+% @doc Response from the hashing server. This is used during the initial
+% hashing of previously downloaded files for the torrent. This is the last step
+% of initialization of a torrent worker.
+% @end
 handle_info({hash_s_hash_files_res, Hashes}, State) ->
     ?DEBUG("recv hash_s_hash_files_res"),
 
@@ -441,6 +466,6 @@ handle_info({hash_s_hash_files_res, Hashes}, State) ->
     Bitfield = ?BINARY:list_to_bitfield(Bitfield_list_ordered),
 
     New_state = State#state{bitfield = Bitfield,
-                            internal_state = inactive},
+                            state = inactive},
 
     {noreply, New_state}.

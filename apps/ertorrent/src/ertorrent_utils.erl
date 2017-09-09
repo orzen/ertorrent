@@ -53,6 +53,8 @@ unify_file_list(File_paths) ->
 % TODO
 % - rename Piece_size to Piece_length since it's the term used in the metainfo
 create_file_mapping(File_paths, Piece_size) ->
+    % TODO remove this once it's verified that is done in the torrent_worker
+    % during init/1.
     {ok, Unified} = unify_file_list(File_paths),
 
     Mapping = create_file_mapping1(Unified, Piece_size, 0, []),
