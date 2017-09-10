@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([get_sync/1,
-         start_link/1,
+         start_link/0,
          shutdown/0]).
 
 -export([init/1,
@@ -17,8 +17,8 @@
 -record(state, {download_location::string(),
                 peer_listen_port::integer()}).
 
-start_link(Filename) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Filename], []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 shutdown() ->
     gen_server:cast(?MODULE, {shutdown}).
@@ -26,7 +26,7 @@ shutdown() ->
 get_sync(Setting) when is_atom(Setting) ->
     gen_server:call(?MODULE, {settings_srv_get, Setting}).
 
-init([Filename]) ->
+init(_Args) ->
     % TODO
     % Add support for configuration files
     % Look for configuration file in /etc
@@ -41,8 +41,11 @@ terminate(Reason, _State) ->
     io:format("~p: going down, with reason '~p'~n", [?MODULE, Reason]),
     ok.
 
-handle_call({settings_srv_get, download_location}, From, State) ->
-    {reply, State#state.download_location, State}.
+handle_call({settings_srv_get, download_location}, _From, State) ->
+    {reply, State#state.download_location, State};
+
+handle_call({settings_srv_get, peer_listen_port}, _From, State) ->
+    {reply, State#state.peer_listen_port, State}.
 
 handle_cast(_Req, State) ->
     {noreply, State}.

@@ -2,6 +2,8 @@
 
 -behaviour(gen_server).
 
+-export([start_link/0]).
+
 -export([init/1,
          terminate/2,
          handle_call/3,
@@ -20,24 +22,28 @@
 % Should be two minutes but we are generous
 -define(PEER_WIRE_TIMEOUT, 130).
 
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
 close_sockets(State) ->
+    % Start by closing the listen socket
+    ok = gen_tcp:close(State#state.listen_socket),
+
     % If something is going wrong, this should be used to close non-transfered
     % socket.
-
     lists:foreach(
         fun(Accept_socket) ->
            ok = gen_tcp:close(Accept_socket)
         end,
     State#state.accept_sockets),
 
-    % TODO
-    % - Cancel the timers
+    % Cancel the timeout timers
+    lists:foreach(
+        fun(Time_ref) ->
+            erlang:cancel_timer(Time_ref)
+        end,
+    State#state.accept_socket_timers),
 
-    ok = gen_tcp:close(State#state.listen_socket),
-
-    ok.
-
-socket_timeout() ->
     ok.
 
 init(_Args) ->
@@ -66,7 +72,9 @@ handle_call(_Req, _From, State) ->
 handle_cast({accept}, State) ->
     case gen_tcp:accept(State#state.listen_socket) of
         {ok, Accept_socket} ->
-            Timer_ref = erlang:send_after(?PEER_WIRE_TIMEOUT, self(), {peer_timed_out, Accept_socket}).
+            Timer_ref = erlang:send_after(?PEER_WIRE_TIMEOUT,
+                                          self(),
+                                          {peer_timed_out, Accept_socket}),
 
             New_accept_sockets = [Accept_socket| State#state.accept_sockets],
             New_accept_socket_timers = [Timer_ref| State#state.accept_socket_timers],
@@ -94,7 +102,10 @@ handle_info({tcp, Socket, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
     {noreply, State#state{accept_sockets = New_accept_sockets}};
 
 handle_info({peer_timed_out, Socket}, State) ->
-    % TODO
-    % - Close the socket
-    % - Remove the socket from the list
-    {noreply, Sa}
+    % Close the socket
+    ok = gen_tcp:close(Socket),
+
+    % Remove the socket from the list
+    New_accept_sockets = lists:delete(Socket, State#state.accept_sockets),
+
+    {noreply, State#state{accept_sockets = New_accept_sockets}}.

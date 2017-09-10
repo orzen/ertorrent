@@ -11,8 +11,8 @@ start_link() ->
 init(_Arg) ->
     SupFlags = {simple_one_for_one, 4, 5},
 
-    Settings_srv_specs = {ertorrent_settings_worker,
-                         {ertorrent_settings_worker, start_link, []},
-                         transient, 60*1000, worker, [ertorrent_settings_worker]},
+    Settings_srv_specs = {ertorrent_settings_srv,
+                          {ertorrent_settings_srv, start_link, []},
+                          transient, infinity, worker, [ertorrent_settings_srv]},
 
     {ok, {SupFlags, [Settings_srv_specs]}}.
