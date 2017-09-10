@@ -8,36 +8,93 @@
          handle_cast/2,
          handle_info/2]).
 
--record(state, {accept_socket,
+-record(state, {accept_sockets::list(),
+                accept_socket_timers::list(),
                 listen_socket}).
+
+-include("ertorrent_log.hrl").
 
 -define(PEER_SSUP, ertorrent_peer_ssup).
 -define(PEER_SRV, ertorrent_peer_srv).
+-define(SETTINGS_SRV, ertorrent_settings_srv).
+% Should be two minutes but we are generous
+-define(PEER_WIRE_TIMEOUT, 130).
 
-init([Listen_socket, Port]) ->
-    gen_server:cast(self(), {accept}),
+close_sockets(State) ->
+    % If something is going wrong, this should be used to close non-transfered
+    % socket.
 
-    {ok, #state{listen_socket = Listen_socket}}.
+    lists:foreach(
+        fun(Accept_socket) ->
+           ok = gen_tcp:close(Accept_socket)
+        end,
+    State#state.accept_sockets),
 
-terminate(_Reason, State) ->
-    {ok, State}.
+    % TODO
+    % - Cancel the timers
+
+    ok = gen_tcp:close(State#state.listen_socket),
+
+    ok.
+
+socket_timeout() ->
+    ok.
+
+init(_Args) ->
+    Port = ?SETTINGS_SRV:get_sync(peer_listen_port),
+
+    case gen_tcp:listen(Port, []) of
+        {ok, Listen_socket} ->
+            gen_server:cast(self(), {accept}),
+
+            {ok, #state{listen_socket = Listen_socket}};
+        {error, Reason} ->
+            {stop, Reason}
+    end.
+
+terminate(shutdown, State) ->
+    ok = close_sockets(State),
+    ok;
+terminate(Reason, State) ->
+    ok = close_sockets(State),
+    ?ERROR("closing unexpectedly: " ++ Reason),
+    ok.
 
 handle_call(_Req, _From, State) ->
     {noreply, State}.
 
-handle_cast({accept}, State = #state{listen_socket=Listen_socket}) ->
-    {ok, Accept_socket} = gen_tcp:accept(Listen_socket),
+handle_cast({accept}, State) ->
+    case gen_tcp:accept(State#state.listen_socket) of
+        {ok, Accept_socket} ->
+            Timer_ref = erlang:send_after(?PEER_WIRE_TIMEOUT, self(), {peer_timed_out, Accept_socket}).
 
-    {noreply, State#state{accept_socket = Accept_socket}}.
+            New_accept_sockets = [Accept_socket| State#state.accept_sockets],
+            New_accept_socket_timers = [Timer_ref| State#state.accept_socket_timers],
 
-handle_info({tcp, _S, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
-                        Peer_id:160>>}, State) ->
+            {noreply, State#state{accept_sockets = New_accept_sockets,
+                                  accept_socket_timers = New_accept_socket_timers}};
+        {error, Reason} ->
+            {stop, Reason, State}
+    end.
+
+handle_info({tcp, Socket, <<19:32, "BitTorrent protocol", 0:64, Info_hash:160,
+                            Peer_id:160>>}, State) ->
     % Spawn another listen socket
-    ?PEER_SSUP:start_worker(State#state.listen_socket),
+    % ?PEER_SSUP:start_worker(State#state.listen_socket),
+    gen_server:cast(self(), {accept}),
 
     % Spawn a new peer with the accept socket
-    ?PEER_SRV:add_rx_peer(State#state.accept_socket,
+    ?PEER_SRV:add_rx_peer(Socket,
                           Info_hash,
                           Peer_id),
 
-    {stop, normal, State}.
+    % Delete all occurrences of Socket (suger syntax for lists:subtract/2).
+    New_accept_sockets = State#state.accept_sockets -- [Socket],
+
+    {noreply, State#state{accept_sockets = New_accept_sockets}};
+
+handle_info({peer_timed_out, Socket}, State) ->
+    % TODO
+    % - Close the socket
+    % - Remove the socket from the list
+    {noreply, Sa}

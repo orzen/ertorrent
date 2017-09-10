@@ -5,6 +5,8 @@
 -export([start_link/0,
          init/1]).
 
+-define(SETTINGS, ertorrent_settings_srv).
+
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 

@@ -14,7 +14,8 @@
 
 -include("ertorrent_log.hrl").
 
--record(state, {download_location::string()}).
+-record(state, {download_location::string(),
+                peer_listen_port::integer()}).
 
 start_link(Filename) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Filename], []).
@@ -31,7 +32,8 @@ init([Filename]) ->
     % Look for configuration file in /etc
     % Look for configuration file in ~/.ertorrent
 
-    State = #state{download_location="~/ertorrent/downloads"},
+    State = #state{download_location="~/ertorrent/downloads",
+                   peer_listen_port=35400},
 
     {ok, State}.
 
