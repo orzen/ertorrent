@@ -65,7 +65,7 @@ stop() ->
 
 %%% Callback module
 init(_Args) ->
-    Own_peer_id = ?SETTINGS_SRV:call({get, peer_id}),
+    {peer_id_str, Own_peer_id} = ?SETTINGS_SRV:get_sync(peer_id_str),
     {ok, #state{own_peer_id = Own_peer_id}}.
 
 handle_call(Req, From, State) ->

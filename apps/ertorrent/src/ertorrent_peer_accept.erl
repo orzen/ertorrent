@@ -47,9 +47,9 @@ close_sockets(State) ->
     ok.
 
 init(_Args) ->
-    Port = ?SETTINGS_SRV:get_sync(peer_listen_port),
+    {peer_listen_port, Port} = ?SETTINGS_SRV:get_sync(peer_listen_port),
 
-    case gen_tcp:listen(Port, []) of
+    case gen_tcp:listen(Port, [{active, false}]) of
         {ok, Listen_socket} ->
             gen_server:cast(self(), {accept}),
 
