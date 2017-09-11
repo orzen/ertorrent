@@ -14,8 +14,7 @@
 
 -include("ertorrent_log.hrl").
 
--record(state, {download_location::string(),
-                peer_listen_port::integer()}).
+-record(state, {settings::list()}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -32,8 +31,19 @@ init(_Args) ->
     % Look for configuration file in /etc
     % Look for configuration file in ~/.ertorrent
 
-    State = #state{download_location="~/ertorrent/downloads",
-                   peer_listen_port=35400},
+    Padding = string:chars($ , 12),
+    Peer_id = lists:concat(["ET-0-0-1", Padding]),
+    % Replacing reserved characters
+    Peer_id_encoded = http_uri:encode(Peer_id),
+
+    Settings = [
+        {download_location,"~/ertorrent/downloads"},
+        {peer_id_str,Peer_id},
+        {peer_id_uri,Peer_id_encoded},
+        {peer_listen_port,35400}
+    ],
+
+    State = #state{settings=Settings},
 
     {ok, State}.
 
@@ -41,11 +51,10 @@ terminate(Reason, _State) ->
     io:format("~p: going down, with reason '~p'~n", [?MODULE, Reason]),
     ok.
 
-handle_call({settings_srv_get, download_location}, _From, State) ->
-    {reply, State#state.download_location, State};
+handle_call({settings_srv_get, Setting}, _From, State) ->
+    Result = lists:keyfind(Setting, 1, State#state.settings),
 
-handle_call({settings_srv_get, peer_listen_port}, _From, State) ->
-    {reply, State#state.peer_listen_port, State}.
+    {reply, Result, State}.
 
 handle_cast(_Req, State) ->
     {noreply, State}.

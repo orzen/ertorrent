@@ -27,16 +27,16 @@ stop() ->
     gen_server:stop(?MODULE).
 
 init([]) ->
-    ok = application:start(sasl),
-    ok = application:start(os_mon),
+    %ok = application:start(sasl),
+    %ok = application:start(os_mon),
 
     Disks = disksup:get_disk_data(),
 
     {ok, #state{disks = Disks}}.
 
 terminate(_Reason, _State) ->
-    ok = application:stop(os_mon),
-    ok = application:stop(sasl),
+    %ok = application:stop(os_mon),
+    %ok = application:stop(sasl),
     ok.
 
 handle_call(terminate, _From, State) ->

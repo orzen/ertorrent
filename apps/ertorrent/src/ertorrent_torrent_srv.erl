@@ -14,7 +14,7 @@
 -define(TORRENTS_FILENAME, "TEST_FILE").
 -define(TORRENT_SUP, ertorrent_torrent_sup).
 
--export([start_link/1,
+-export([start_link/0,
          stop/0,
          add/1,
          list/1,
@@ -52,11 +52,8 @@ member_by_info_hash(Info_hash) ->
 
 %%% Standard client API
 %%% Cached_metainfo list with metainfo
-start_link(Cached_metainfo) ->
-    gen_server:start_link({local, ?MODULE},
-                          ?MODULE,
-                          [{metainfo_cache, Cached_metainfo}],
-                          []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
@@ -74,7 +71,7 @@ spawn_workers_from_cache(Torrent_sup, Cached_torrents) ->
 %% Callback module
 
 %%% Init for development
-init({metainfo_cache, _Cached_metainfo}) ->
+init(_Args) ->
     case filelib:is_file(?TORRENTS_FILENAME) of
         true ->
             {ok, Torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),

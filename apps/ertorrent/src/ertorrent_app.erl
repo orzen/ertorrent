@@ -39,12 +39,15 @@ start(_StartType, _StartArgs) ->
     % Configuration handling, distributed setup and OS-specifics
     % ertorrent_sup:start_link_one(),
 
+
     % The rest of the internals
     %ertorrent_sup:start_link_two(),
-    {ok, Pid} = ertorrent_sup:start_link(),
 
     % The API
     %ertorrent_sup:start_link_three().
+
+    % Start up the servers
+    {ok, Pid} = ertorrent_sup:start_link(),
 
     % This also comes from the Cowboy tutorial
     {ok, Pid}.

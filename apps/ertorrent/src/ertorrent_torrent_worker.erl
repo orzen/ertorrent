@@ -173,11 +173,6 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
            ++ "\nmetainfo: " ++ Metainfo ++ "\nstart_when_ready: " ++
            Start_when_ready),
 
-    % TODO move Peer_id to the settings_srv
-    Peer_id = string:concat("ET-0-0-1", string:chars($ , 12)),
-    % Replacing reserved characters
-    Peer_id_encoded = edoc_lib:escape_uri(Peer_id),
-
     {ok, Announce_address} = ?METAINFO:get_value(<<"announce">>, Metainfo),
     {ok, Length} = ?METAINFO:get_value(<<"length">>, Metainfo),
     {ok, Piece_length} = ?METAINFO:get_value(<<"piece length">>, Metainfo),
@@ -190,7 +185,9 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
 
     Pieces = ?UTILS:piece_binary_to_list(Pieces_bin),
 
-    Location = ?SETTINGS_SRV:get_sync(download_location),
+    % URI encoded peer id
+    {peer_id_uri, Peer_id_encoded} = ?SETTINGS_SRV:get_sync(peer_id_uri),
+    {download_location, Location} = ?SETTINGS_SRV:get_sync(download_location),
 
     % TODO investigate support for allocate
     case Resolved_files of

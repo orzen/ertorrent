@@ -1,17 +1,18 @@
 -module(ertorrent_sup).
 
--define(HASH, ertorrent_hash_sup).
--define(TRACKER, ertorrent_tracker_ssup).
--define(PEER, ertorrent_peer_ssup).
--define(TORRENT, ertorrent_torrent_ssup).
--define(SETTINGS, ertorrent_settings_sup).
--define(REST_V1, ertorrent_rest_v1_sup).
-
 -export([start/0,
          start_link/0,
          init/1]).
 
 -include("ertorrent_log.hrl").
+
+-define(SUPERVISOR(Module), {Module,
+                             {Module, start_link, []},
+                             transient, infinity, supervisor, [Module]}).
+
+-define(SERVER(Module), {Module,
+                         {Module, start_link, []},
+                         transient, infinity, worker, [Module]}).
 
 start() ->
     supervisor:start({local, ?MODULE}, ?MODULE, []).
@@ -25,33 +26,25 @@ init(_Arg) ->
 
     Sup_flags = {one_for_one, Max_restart, Max_time},
 
-    Settings_specs = {?SETTINGS,
-                      {?SETTINGS, start_link, []},
-                      transient, infinity, supervisor, [?SETTINGS]},
+    Supervisors = [
+                   ertorrent_peer_sup,
+                   ertorrent_torrent_sup,
+                   ertorrent_file_sup
+                  ],
 
-    Hash_specs = {?HASH,
-                  {?HASH, start_link, []},
-                  transient, infinity, supervisor, [?HASH]},
+    Supervisor_specs = [?SUPERVISOR(X) || X <- Supervisors],
 
-    Peer_specs = {?PEER,
-                  {?PEER, start_link, []},
-                  transient, infinity, supervisor, [?PEER]},
+    Servers = [
+               ertorrent_settings_srv,
+               ertorrent_file_srv,
+               ertorrent_torrent_srv,
+               ertorrent_tracker_http_dispatcher,
+               ertorrent_peer_accept,
+               ertorrent_peer_srv
+              ],
 
-    Rest_v1_specs = {?REST_V1,
-                     {?REST_V1, start_link, []},
-                     transient, infinity, supervisor, [?REST_V1]},
+    Server_specs = [?SERVER(X) || X <- Servers],
 
-    Tracker_specs = {?TRACKER,
-                     {?TRACKER, start_link, []},
-                     transient, infinity, supervisor, [?TRACKER]},
+    Specs = lists:merge(Supervisor_specs, Server_specs),
 
-    Torrent_specs = {?TORRENT,
-                     {?TORRENT, start_link, []},
-                     transient, infinity, supervisor, [?TORRENT]},
-
-    {ok, {Sup_flags, [Settings_specs,
-                      Hash_specs,
-                      Peer_specs,
-                      %Rest_v1_specs,
-                      Tracker_specs,
-                      Torrent_specs]}}.
+    {ok, {Sup_flags, Specs}}.

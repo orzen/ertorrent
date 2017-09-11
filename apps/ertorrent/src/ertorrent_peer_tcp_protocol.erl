@@ -15,20 +15,22 @@
 
 -include("ertorrent_peer_tcp_message_ids.hrl").
 
-parse_length_prefixed_value(Length, Bitstring) ->
-    <<Value:Length/big-integer-unit:8, Rest>> = Bitstring,
-    {ok, {Value, Rest}}.
+% TODO remove if not used
+% parse_length_prefixed_value(Length, Bitstring) ->
+%     <<Value:Length/big-integer-unit:8, Rest>> = Bitstring,
+%     {ok, {Value, Rest}}.
+% 
+% parse_message(Bytestring) ->
+%     parse_message(Bytestring, []).
+% parse_message(<<>>, Acc) ->
+%     {ok, lists:reverse(Acc)};
+% parse_message(<<Length:32/big, Rest/big>>, Acc) ->
+%     case Length =:= 0 of
+%         true -> [0];
+%         false -> {ok, {Value, New_rest}} = parse_length_prefixed_value(Length, Rest),
+%                  parse_message(New_rest, [Value|Acc])
+%     end.
 
-parse_message(Bytestring) ->
-    parse_message(Bytestring, []).
-parse_message(<<>>, Acc) ->
-    {ok, lists:reverse(Acc)};
-parse_message(<<Length:32/big, Rest/big>>, Acc) ->
-    case Length =:= 0 of
-        true -> [0];
-        false -> {ok, {Value, New_rest}} = parse_length_prefixed_value(Length, Rest),
-                 parse_message(New_rest, [Value|Acc])
-    end.
 
 % TODO: Get some statistics of most common message types to priorites the match
 % below to improve the decode performance.

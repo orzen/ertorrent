@@ -12,8 +12,9 @@
          add_tx_peer/2,
          multicast/2,
          remove/1,
-         remove_related/1,
-         start_link/1,
+         remove_related/1]).
+
+-export([start_link/0,
          stop/0]).
 
 -export([init/1,
@@ -55,17 +56,17 @@ remove(Address) ->
 remove_related(Info_hash) ->
     gen_server:call(?MODULE, {remove_related, Info_hash}).
 
-start_link([Port_min, Port_max]) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Port_min, Port_max], []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
     gen_server:cast(?MODULE, stop).
 
 %%% Callback module
-init([Port_min, Port_max]) ->
+init(_Args) ->
     Own_peer_id = ?SETTINGS_SRV:call({get, peer_id}),
-    {ok, #state{own_peer_id = Own_peer_id, port_min=Port_min, port_max=Port_max}}.
+    {ok, #state{own_peer_id = Own_peer_id}}.
 
 handle_call(Req, From, State) ->
     ?INFO("unhandled call request: " ++ Req ++ ", from: " ++ From),
