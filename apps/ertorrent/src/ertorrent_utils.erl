@@ -179,11 +179,16 @@ index_list1([H| Rest], Counter, Acc) ->
     index_list1(Rest, (Counter + 1), [{Counter, H}| Acc]).
 
 read_term_from_file(Filename) ->
-    {ok, Data} = file:read_file(Filename),
-    {ok, binary_to_term(Data)}.
+    case filelib:is_file(Filename) of
+        true ->
+            {ok, Data} = file:read_file(Filename),
+            {ok, binary_to_term(Data)};
+        false ->
+            {error, noent}
+    end.
 
 write_term_to_file(Filename, Data) ->
-    file:write_file(Filename, term_to_binary(Data)).
+    file:write_file(Filename, erlang:term_to_binary(Data)).
 
 format_hash([], Acc) ->
     lists:reverse(Acc);

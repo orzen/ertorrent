@@ -12,6 +12,7 @@
     os_mon,
 
     % upstream
+    lager,
     cowboy
    ]},
   {mod, {ertorrent_app, []}},

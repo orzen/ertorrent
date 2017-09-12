@@ -108,8 +108,8 @@ deactivate(Torrent_worker_id) ->
     gen_server:cast(Torrent_worker_id, {deactivate}).
 
 % Starting server
-start_link(Info_hash_atom, [Info_hash, Metainfo]) when is_atom(Info_hash_atom) ->
-    gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo], []).
+start_link(Info_hash_atom, [Info_hash, Metainfo, Start_when_ready]) when is_atom(Info_hash_atom) ->
+    gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo, Start_when_ready], []).
 
 % Shutting down the server
 shutdown(Name) ->

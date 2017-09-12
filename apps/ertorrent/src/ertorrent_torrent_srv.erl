@@ -9,15 +9,9 @@
 
 -behaviour(gen_server).
 
--include("ertorrent_log.hrl").
-
--define(TORRENTS_FILENAME, "TEST_FILE").
--define(TORRENT_SUP, ertorrent_torrent_sup).
-
 -export([start_link/0,
          stop/0,
          add/1,
-         list/1,
          member_by_info_hash/1]).
 
 -export([init/1,
@@ -31,27 +25,25 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
+-include("ertorrent_log.hrl").
+
+-define(BENCODE, ertorrent_bencode).
+-define(ERTORRENT_META_FILE, "TEST_FILE").
+-define(METAINFO, ertorrent_metainfo).
+-define(TORRENT_SUP, ertorrent_torrent_sup).
+-define(UTILS, ertorrent_utils).
+
 -record(state, {torrents=[],
                 torrent_sup}).
 
+%%% Client API
+
 add(Metainfo) ->
-    gen_server:call(?MODULE, {add, Metainfo}).
-
-list(Pid) ->
-    gen_server:call(Pid, {list}).
-
-print_list([]) ->
-    true;
-print_list([H|T]) ->
-    {Hash, _} = H,
-    io:format("~p~n", [Hash]),
-    print_list(T).
+    gen_server:cast(?MODULE, {torrent_s_add_torrent, self(), Metainfo}).
 
 member_by_info_hash(Info_hash) ->
-    gen_server:call({torrent_srv_member_info_hash, Info_hash}).
+    gen_server:call({torrent_s_member_info_hash, Info_hash}).
 
-%%% Standard client API
-%%% Cached_metainfo list with metainfo
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -59,46 +51,40 @@ stop() ->
     io:format("Stopping: ~p...~n", [?MODULE]),
     gen_server:cast(?MODULE, stop).
 
-spawn_workers_from_cache(Torrent_sup, Cached_torrents) ->
+%%% Internal functions
+
+spawn_workers_from_cache(Torrent_sup, Torrents) ->
     lists:foreach(
         fun({Info_hash, Metainfo}) ->
             supervisor:start_child(Torrent_sup,
                                    [list_to_atom(Info_hash),
                                     [Info_hash, Metainfo]])
         end,
-        Cached_torrents).
+        Torrents).
 
-%% Callback module
-
-%%% Init for development
+%% Callback functions
 init(_Args) ->
-    case filelib:is_file(?TORRENTS_FILENAME) of
-        true ->
-            {ok, Torrents} = utils:read_term_from_file(?TORRENTS_FILENAME),
+    case file:read_file(?ERTORRENT_META_FILE) of
+        {ok, Stored_torrent_meta} ->
+            Torrents = erlang:binary_to_term(Stored_torrent_meta),
+
             spawn_workers_from_cache(?TORRENT_SUP, Torrents);
-        false ->
+        {error, enoent} ->
+            Torrents = [];
+        {error, Reason} ->
+            ?WARNING("unhandled error reason when reading stored torrent meta: " ++ Reason),
             Torrents = []
     end,
+
     {ok, #state{torrents=Torrents,
                 torrent_sup=?TORRENT_SUP}}.
 
-%% Synchronous
 handle_call({torrent_srv_member_info_hash, Info_hash}, _From, State) ->
     Member = lists:keymember(Info_hash, 1, State),
-    {reply, Member, State};
-handle_call({list}, _From, State) ->
-    io:format("~p list~n", [?MODULE]),
+    {reply, Member, State}.
 
-    Torrents = State#state.torrents,
-
-    print_list(Torrents),
-
-    {reply, Torrents, State}.
-
-%% Asynchronous
-
-
-%% @doc API to start added torrents
+% @doc API to start added torrents
+% @end
 handle_cast({start}, State) ->
     io:format("~p starting~n",[?MODULE]),
     {noreply, State};
@@ -107,29 +93,27 @@ handle_cast({remove}, State) ->
     io:format("~p remove~n",[?MODULE]),
     {noreply, State};
 
-handle_cast({torrent_srv_add_torrent, From, Metainfo}, State) ->
+handle_cast({torrent_s_add_torrent, From, Metainfo}, State) ->
     % Creating info hash
-    {ok, Info} = metainfo:get_value(<<"info">>, Metainfo),
-    {ok, Info_encoded} = bencode:encode(Info),
-    {ok, Info_hash} = utils:encode_hash(Info_encoded),
+    {ok, Info} = ?METAINFO:get_value(<<"info">>, Metainfo),
+    {ok, Info_encoded} = ?BENCODE:encode(Info),
+    {ok, Info_hash} = ?UTILS:encode_hash(Info_encoded),
 
     % Preparing torrent tuple
     Torrent = {Info_hash, Metainfo},
     Current_torrents = State#state.torrents,
 
-    Atom_hash = list_to_atom(Info_hash),
+    Torrent_ID = list_to_atom(Info_hash),
+    Start_when_ready = false,
     case supervisor:start_child(State#state.torrent_sup,
-                                [Atom_hash,
-                                 [Info_hash,
-                                  Metainfo]
-                                ]
-                               ) of
+                                #{id => Torrent_ID,
+                                  start => [Info_hash, Metainfo, Start_when_ready]}) of
         {ok, _Child} ->
             % Adding torrent tuple to the bookkeeping list
             New_state = State#state{torrents = [Torrent|Current_torrents]},
 
             % Write the updated bookkeeping list to file
-            utils:write_term_to_file(?TORRENTS_FILENAME, New_state#state.torrents),
+            ?UTILS:write_term_to_file(?ERTORRENT_META_FILE, New_state#state.torrents),
 
             From ! {reply, ok};
         {error, Reason} ->

@@ -55,6 +55,7 @@ resolve_files(Metainfo) ->
 
 % Retrieve value for given key, from the metainfo
 get_value(Key, Metainfo) ->
+    lager:info("get_info_value: ~p", [Metainfo]),
     case lists:keyfind(Key, 1, Metainfo) of
         {_, Value} ->
             {ok, Value};
