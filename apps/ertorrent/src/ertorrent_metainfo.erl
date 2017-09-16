@@ -12,11 +12,13 @@
 
 resolve_files(Metainfo) ->
     {ok, Info} = get_value(<<"info">>, Metainfo),
-    {ok, Name} = get_value(<<"name">>, Info),
+    {ok, Name_bin} = get_value(<<"name">>, Info),
+
+    Name = binary_to_list(Name_bin),
 
     % Determine the file mode and resolve the files into a predicatable and
     % efficient format.
-    case metainfo:get_value(<<"files">>, Info) of
+    case get_value(<<"files">>, Info) of
         {ok, Files} ->
             File_mode = multiple,
 
@@ -45,17 +47,16 @@ resolve_files(Metainfo) ->
             % Optional value
             case lists:keyfind(<<"md5sum">>, 1, Info) of
                 {<<"md5sum">>, Md5sum} ->
-                    Resolved_files = [{Length, Md5sum}];
+                    Resolved_files = [{Name, Length, Md5sum}];
                 false ->
-                    Resolved_files = [{Length}]
+                    Resolved_files = [{Name, Length}]
             end
     end,
 
-    {files, File_mode, binary_to_list(Name), Resolved_files}.
+    {files, File_mode, Name, Resolved_files}.
 
 % Retrieve value for given key, from the metainfo
 get_value(Key, Metainfo) ->
-    lager:info("get_info_value: ~p", [Metainfo]),
     case lists:keyfind(Key, 1, Metainfo) of
         {_, Value} ->
             {ok, Value};

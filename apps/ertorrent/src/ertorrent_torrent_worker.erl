@@ -109,7 +109,7 @@ deactivate(Torrent_worker_id) ->
 
 % Starting server
 start_link(Info_hash_atom, [Info_hash, Metainfo, Start_when_ready]) when is_atom(Info_hash_atom) ->
-    gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo, Start_when_ready], []).
+    gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo, Start_when_ready], [{debug, trace}]).
 
 % Shutting down the server
 shutdown(Name) ->
@@ -169,21 +169,21 @@ start_torrent(State) ->
 % - Gather every value fetched from the metainfo, re-group and maybe split up
 % the contents of this function.
 init([Info_hash, Metainfo, Start_when_ready]) ->
+    lager:debug("~p: STARTING", [?MODULE]),
     ?DEBUG("starting to initialize torrent worker: \ninfo_hash: " ++ Info_hash
            ++ "\nmetainfo: " ++ Metainfo ++ "\nstart_when_ready: " ++
            Start_when_ready),
 
     {ok, Announce_address} = ?METAINFO:get_value(<<"announce">>, Metainfo),
-    {ok, Length} = ?METAINFO:get_value(<<"length">>, Metainfo),
-    {ok, Piece_length} = ?METAINFO:get_value(<<"piece length">>, Metainfo),
-
+    {ok, Piece_length} = ?METAINFO:get_info_value(<<"piece length">>, Metainfo),
     % Prepare a list of pieces since, the piece section of the metainfo
     % consists of a concatenated binary of all the pieces.
     {ok, Pieces_bin} = ?METAINFO:get_info_value(<<"pieces">>, Metainfo),
 
     Resolved_files = ?METAINFO:resolve_files(Metainfo),
 
-    Pieces = ?UTILS:piece_binary_to_list(Pieces_bin),
+    {ok, Pieces} = ?UTILS:pieces_binary_to_list(Pieces_bin),
+    Length = length(Pieces) * Piece_length,
 
     % URI encoded peer id
     {peer_id_uri, Peer_id_encoded} = ?SETTINGS_SRV:get_sync(peer_id_uri),
@@ -193,27 +193,24 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
     case Resolved_files of
         {files, multiple, _Name, Files_list} ->
             Files_reverse = lists:foldl(fun({Path, _}, Acc) ->
-                                            Full_path = Location ++ '/' ++ Path,
+                                            Full_path = Location ++ "/" ++ Path,
                                             [Full_path| Acc]
                                         end, [], Files_list),
 
             % Preserve the order
             File_paths = lists:reverse(Files_reverse);
         {files, single, Name, _} ->
-            File_paths = [Location ++ '/' ++ Name]
+            File_paths = [Location ++ "/" ++ Name]
     end,
 
     % Calculate the tracker statistics
     % TODO
     % - Should the tracker statistics be written to file instead?
-    Downloaded = lists:foldl(fun(File_path, Acc) ->
-                                     File_size = filelib:file_size(File_path),
-                                     Acc + File_size
-                             end, 0, File_paths),
-
-    Left = Length - Downloaded,
-
-    Uploaded = 0,
+    % TODO Remove
+    %Downloaded = lists:foldl(fun(File_path, Acc) ->
+    %                                 File_size = filelib:file_size(File_path),
+    %                                 Acc + File_size
+    %                         end, 0, File_paths),
 
     % Calculate the piece layout over the file structure
     % TODO rename create_file_mapping
@@ -226,19 +223,19 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
     ?HASH_SRV:hash_files(self(), File_paths, Piece_length),
 
     State = #state{announce = Announce_address,
-                   downloaded = Downloaded,
+                   downloaded = 0,
                    event = stopped,
                    files = Resolved_files,
                    file_paths = File_paths,
                    info_hash = Info_hash,
-                   left = Left,
+                   left = 0,
                    length = Length,
                    metainfo = Metainfo,
                    peer_id = Peer_id_encoded,
                    pieces = Pieces,
                    piece_layout = Piece_layout,
                    start_when_ready = Start_when_ready,
-                   uploaded = Uploaded},
+                   uploaded = 0},
 
     ?DEBUG("new torrent " ++ Info_hash),
 

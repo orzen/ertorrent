@@ -39,10 +39,10 @@
 %%% Client API
 
 add(Metainfo) ->
-    gen_server:cast(?MODULE, {torrent_s_add_torrent, self(), Metainfo}).
+    gen_server:call(?MODULE, {torrent_s_add_torrent, Metainfo}).
 
 member_by_info_hash(Info_hash) ->
-    gen_server:call({torrent_s_member_info_hash, Info_hash}).
+    gen_server:call(?MODULE, {torrent_s_member_info_hash, Info_hash}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -81,19 +81,9 @@ init(_Args) ->
 
 handle_call({torrent_srv_member_info_hash, Info_hash}, _From, State) ->
     Member = lists:keymember(Info_hash, 1, State),
-    {reply, Member, State}.
+    {reply, Member, State};
 
-% @doc API to start added torrents
-% @end
-handle_cast({start}, State) ->
-    io:format("~p starting~n",[?MODULE]),
-    {noreply, State};
-
-handle_cast({remove}, State) ->
-    io:format("~p remove~n",[?MODULE]),
-    {noreply, State};
-
-handle_cast({torrent_s_add_torrent, From, Metainfo}, State) ->
+handle_call({torrent_s_add_torrent, Metainfo}, From, State) ->
     % Creating info hash
     {ok, Info} = ?METAINFO:get_value(<<"info">>, Metainfo),
     {ok, Info_encoded} = ?BENCODE:encode(Info),
@@ -105,9 +95,7 @@ handle_cast({torrent_s_add_torrent, From, Metainfo}, State) ->
 
     Torrent_ID = list_to_atom(Info_hash),
     Start_when_ready = false,
-    case supervisor:start_child(State#state.torrent_sup,
-                                #{id => Torrent_ID,
-                                  start => [Info_hash, Metainfo, Start_when_ready]}) of
+    case ertorrent_torrent_sup:start_child(Torrent_ID, [Info_hash, Metainfo, Start_when_ready]) of
         {ok, _Child} ->
             % Adding torrent tuple to the bookkeeping list
             New_state = State#state{torrents = [Torrent|Current_torrents]},
@@ -115,21 +103,33 @@ handle_cast({torrent_s_add_torrent, From, Metainfo}, State) ->
             % Write the updated bookkeeping list to file
             ?UTILS:write_term_to_file(?ERTORRENT_META_FILE, New_state#state.torrents),
 
-            From ! {reply, ok};
+            Reply = {ok, Info_hash};
         {error, Reason} ->
             New_state = State,
 
             case Reason of
                 already_present ->
-                    From ! {reply, {not_ok, already_present}};
+                    Reply = {not_ok, already_present};
                 {already_present, _Child} ->
-                    From ! {reply, {not_ok, already_present}};
+                    Reply = {not_ok, already_present};
                 Reason ->
-                    From ! {reply, {not_ok, unexpected, Reason}}
+                    lager:warning("~p: unexpected error when starting torrent worker: '~p'", [?MODULE, Reason]),
+                    Reply = {not_ok, unexpected, Reason}
             end
     end,
 
-    {reply, Info_hash, New_state};
+    {reply, From, Reply, New_state}.
+
+
+% @doc API to start added torrents
+% @end
+handle_cast({start}, State) ->
+    io:format("~p starting~n",[?MODULE]),
+    {noreply, State};
+
+handle_cast({remove}, State) ->
+    io:format("~p remove~n",[?MODULE]),
+    {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State}.
 

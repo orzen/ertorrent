@@ -52,9 +52,9 @@ unify_file_list(File_paths) ->
 % between piece index and file information.
 % TODO
 % - rename Piece_size to Piece_length since it's the term used in the metainfo
-create_file_mapping(File_paths, Piece_size) ->
-    % TODO remove this once it's verified that is done in the torrent_worker
-    % during init/1.
+create_file_mapping(Files, Piece_size) ->
+    {files, _, _, File_paths} = Files,
+
     {ok, Unified} = unify_file_list(File_paths),
 
     Mapping = create_file_mapping1(Unified, Piece_size, 0, []),
@@ -190,21 +190,21 @@ read_term_from_file(Filename) ->
 write_term_to_file(Filename, Data) ->
     file:write_file(Filename, erlang:term_to_binary(Data)).
 
-format_hash([], Acc) ->
-    lists:reverse(Acc);
-format_hash([Msn, Lsn|Tail], Acc) ->
-    New_acc = [Lsn, Msn, $%|Acc],
-    format_hash(Tail, New_acc).
+% percent_encode([], Acc) ->
+%     lists:reverse(Acc);
+% percent_encode([Msn, Lsn|Tail], Acc) ->
+%     New_acc = [Lsn, Msn, $%|Acc],
+%     percent_encode(Tail, New_acc).
 
 encode_hash(Info_bencoded) ->
     % 160bits/8=20 byte SHA1 as integerlist
     <<Hash:160/integer>> = crypto:hash(sha, Info_bencoded),
     % Convert the integerlist to a string with len:40, base:16, type:binary
     Info_hash = lists:flatten(io_lib:format("~40.16.0b", [Hash])),
-    % Percent-formatting
-    Percent_format = format_hash(Info_hash, []),
+    % TODO clean up Percent-formatting
+    % TODO clean up Percent_format = percent_encode(Info_hash, []),
     % Upper case
-    Upper_format = string:to_upper(Percent_format),
+    Upper_format = string:to_upper(Info_hash),
     {ok, Upper_format}.
 
 % Splitting the pieces section from the metainfo into 20-byte segments and
@@ -212,11 +212,11 @@ encode_hash(Info_bencoded) ->
 pieces_binary_to_list(Binary_pieces) when is_bitstring(Binary_pieces) ->
     Pieces = pieces_binary_to_list1(Binary_pieces, []),
 
-    {ok, Pieces}.
+    {ok, lists:reverse(Pieces)}.
 
 pieces_binary_to_list1(<<>>, Acc) ->
     Acc;
-pieces_binary_to_list1(<<Piece_bin:20/integer, Rest/binary>>, Acc) ->
+pieces_binary_to_list1(<<Piece_bin:20/binary, Rest/binary>>, Acc) ->
     % TODO maybe remove the bin_to_list since string:equals can handle
     % binary-string to string comparision
 
