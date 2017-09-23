@@ -27,17 +27,18 @@ content_types_provided(Req, State) ->
 
 top_html(Req, State) ->
     {ok, Metainfo} = ertorrent_metainfo:parse_file("/home/orz/downloads/debian-9.1.0-amd64-netinst.iso.torrent"),
-    Reply = ertorrent_torrent_srv:add(Metainfo),
+    {ok, Reply} = ertorrent_torrent_srv:add(Metainfo, true),
 
-    lager:warning("REPLY: ~p", [Reply]),
+    Resp = list_to_binary(Reply),
 
     Body = <<"<html>
 <head>
     <meta charset=\"utf-8\">
-    <title>REST Hello World!</title>
+    <title>ertorrent</title>
 </head>
 <body>
-    <p>REST Hello World as HTML!</p></body>
+    <p>Added torrent:", Resp/binary, "</p>
+</body>
 </html>">>,
 
     {Body, Req, State}.

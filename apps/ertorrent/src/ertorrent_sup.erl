@@ -37,10 +37,11 @@ init(_Arg) ->
     Servers = [
                ertorrent_settings_srv,
                ertorrent_file_srv,
-               ertorrent_torrent_srv,
+               ertorrent_hash_srv,
                ertorrent_tracker_http_dispatcher,
                ertorrent_peer_accept,
-               ertorrent_peer_srv
+               ertorrent_peer_srv,
+               ertorrent_torrent_srv
               ],
 
     Server_specs = [?SERVER(X) || X <- Servers],

@@ -109,7 +109,7 @@ deactivate(Torrent_worker_id) ->
 
 % Starting server
 start_link(Info_hash_atom, [Info_hash, Metainfo, Start_when_ready]) when is_atom(Info_hash_atom) ->
-    gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo, Start_when_ready], [{debug, trace}]).
+    gen_server:start_link({local, Info_hash_atom}, ?MODULE, [Info_hash, Metainfo, Start_when_ready], []).
 
 % Shutting down the server
 shutdown(Name) ->
@@ -161,7 +161,8 @@ start_torrent(State) ->
     {ok, Announce_ref} = tracker_announce_loop(New_state_event),
 
     New_state = New_state_event#state{announce_ref = Announce_ref,
-                                      event = started},
+                                      event = started,
+                                      state = active},
     {ok, New_state}.
 
 %%% Callback functions
@@ -169,7 +170,6 @@ start_torrent(State) ->
 % - Gather every value fetched from the metainfo, re-group and maybe split up
 % the contents of this function.
 init([Info_hash, Metainfo, Start_when_ready]) ->
-    lager:debug("~p: STARTING", [?MODULE]),
     ?DEBUG("starting to initialize torrent worker: \ninfo_hash: " ++ Info_hash
            ++ "\nmetainfo: " ++ Metainfo ++ "\nstart_when_ready: " ++
            Start_when_ready),
@@ -239,7 +239,7 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
 
     ?DEBUG("new torrent " ++ Info_hash),
 
-    {ok, State}.
+    {ok, State, hibernate}.
 
 terminate(Reason, _State) ->
     io:format("~p: going down, with reason '~p'~n", [?MODULE, Reason]),
@@ -438,7 +438,7 @@ handle_info({torrent_s_hash_piece_resp, _Index, _Hash}, State) ->
 % of initialization of a torrent worker.
 % @end
 handle_info({hash_s_hash_files_res, Hashes}, State) ->
-    ?DEBUG("recv hash_s_hash_files_res"),
+    lager:warning("recv hash_s_hash_files_res", []),
 
     % Construct a list of the to list in the form [{X_hash, Y_hash}, {X_hash1,
     % Y_hash1}]. Now the comparison can be done in one iteration of the ziped
@@ -463,7 +463,14 @@ handle_info({hash_s_hash_files_res, Hashes}, State) ->
     % Convert list to bitfield
     Bitfield = ?BINARY:list_to_bitfield(Bitfield_list_ordered),
 
-    New_state = State#state{bitfield = Bitfield,
-                            state = inactive},
+    case State#state.start_when_ready of
+        active ->
+            Tmp_state = State#state{bitfield = Bitfield},
+            New_state = start_torrent(Tmp_state),
+            {noreply, New_state};
+        inactive->
+            New_state = State#state{bitfield = Bitfield,
+                                    state = inactive},
+            {noreply, New_state, hibernate}
+    end.
 
-    {noreply, New_state}.

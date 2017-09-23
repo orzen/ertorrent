@@ -11,7 +11,7 @@
 
 -export([start_link/0,
          stop/0,
-         add/1,
+         add/2,
          member_by_info_hash/1]).
 
 -export([init/1,
@@ -38,8 +38,8 @@
 
 %%% Client API
 
-add(Metainfo) ->
-    gen_server:call(?MODULE, {torrent_s_add_torrent, Metainfo}).
+add(Metainfo, Start_when_ready) ->
+    gen_server:call(?MODULE, {torrent_s_add_torrent, Metainfo, Start_when_ready}).
 
 member_by_info_hash(Info_hash) ->
     gen_server:call(?MODULE, {torrent_s_member_info_hash, Info_hash}).
@@ -72,18 +72,18 @@ init(_Args) ->
         {error, enoent} ->
             Torrents = [];
         {error, Reason} ->
-            ?WARNING("unhandled error reason when reading stored torrent meta: " ++ Reason),
+            lager:warning("unhandled error reason when reading stored torrent meta: '~p'", [Reason]),
             Torrents = []
     end,
 
     {ok, #state{torrents=Torrents,
-                torrent_sup=?TORRENT_SUP}}.
+                torrent_sup=?TORRENT_SUP}, hibernate}.
 
 handle_call({torrent_srv_member_info_hash, Info_hash}, _From, State) ->
     Member = lists:keymember(Info_hash, 1, State),
     {reply, Member, State};
 
-handle_call({torrent_s_add_torrent, Metainfo}, From, State) ->
+handle_call({torrent_s_add_torrent, Metainfo, Start_when_ready}, _From, State) ->
     % Creating info hash
     {ok, Info} = ?METAINFO:get_value(<<"info">>, Metainfo),
     {ok, Info_encoded} = ?BENCODE:encode(Info),
@@ -94,14 +94,14 @@ handle_call({torrent_s_add_torrent, Metainfo}, From, State) ->
     Current_torrents = State#state.torrents,
 
     Torrent_ID = list_to_atom(Info_hash),
-    Start_when_ready = false,
     case ertorrent_torrent_sup:start_child(Torrent_ID, [Info_hash, Metainfo, Start_when_ready]) of
         {ok, _Child} ->
             % Adding torrent tuple to the bookkeeping list
             New_state = State#state{torrents = [Torrent|Current_torrents]},
 
             % Write the updated bookkeeping list to file
-            ?UTILS:write_term_to_file(?ERTORRENT_META_FILE, New_state#state.torrents),
+            % TODO commenting this one for now
+            %?UTILS:write_term_to_file(?ERTORRENT_META_FILE, New_state#state.torrents),
 
             Reply = {ok, Info_hash};
         {error, Reason} ->
@@ -118,7 +118,7 @@ handle_call({torrent_s_add_torrent, Metainfo}, From, State) ->
             end
     end,
 
-    {reply, From, Reply, New_state}.
+    {reply, Reply, New_state, hibernate}.
 
 
 % @doc API to start added torrents

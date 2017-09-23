@@ -66,7 +66,7 @@ stop() ->
 %%% Callback module
 init(_Args) ->
     {peer_id_str, Own_peer_id} = ?SETTINGS_SRV:get_sync(peer_id_str),
-    {ok, #state{own_peer_id = Own_peer_id}}.
+    {ok, #state{own_peer_id = Own_peer_id}, hibernate}.
 
 handle_call(Req, From, State) ->
     ?INFO("unhandled call request: " ++ Req ++ ", from: " ++ From),
