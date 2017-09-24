@@ -53,6 +53,8 @@ unify_file_list(File_paths) ->
 % TODO
 % - rename Piece_size to Piece_length since it's the term used in the metainfo
 create_file_mapping(Files, Piece_size) ->
+    % The files term includes the file sizes which is necessary to calculate
+    % the file mapping.
     {files, _, _, File_paths} = Files,
 
     {ok, Unified} = unify_file_list(File_paths),
@@ -240,7 +242,7 @@ unify_file_list_output_test() ->
     ?assert(Actual_output =:= Expected_output).
 
 create_file_mapping_single_file_test() ->
-    Input_files = [{"/home/user/media/foo", 10000}],
+    Input_files = {files, single, "TorrentFoo", [{"/home/user/media/foo", 10000}]},
 
     Input_piece_size = 2000,
 
@@ -255,8 +257,9 @@ create_file_mapping_single_file_test() ->
     ?assert(Actual_output =:= Expected_output).
 
 create_file_mapping_multiple_files_test() ->
-    Input_files = [{"/home/user/media/foo", 11000},
-                   {"/home/user/media/bar", 9000, "24ddba2b44f5991b636b04be9ab29535"}],
+    Input_files = {files, multiple, "TorrentFoo",
+                   [{"/home/user/media/foo", 11000},
+                    {"/home/user/media/bar", 9000, "24ddba2b44f5991b636b04be9ab29535"}]},
 
     Input_piece_size = 2000,
 

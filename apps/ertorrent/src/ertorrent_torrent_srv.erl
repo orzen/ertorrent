@@ -21,10 +21,6 @@
          terminate/2,
          code_change/3]).
 
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
--endif.
-
 -include("ertorrent_log.hrl").
 
 -define(BENCODE, ertorrent_bencode).
@@ -158,21 +154,3 @@ terminate(Reason, _State) ->
 
 code_change(_OldVsn, _State, _Extra) ->
     {ok}.
-
-
--ifdef(TEST).
-
-dev_test() ->
-    erlang:display("Running developer test"),
-    {ok, Meta} = metainfo:read_file("../src/debian-8.3.0-amd64-netinst.iso.torrent"),
-    io:format("meta: ~p~n", [Meta]),
-    {ok, Pid} = torrent_gen:start_link(),
-    {ok, Pid2} = torrent_gen:start_link(),
-    erlang:display(Pid),
-    erlang:display(Pid2),
-    Ret = torrent_gen:stop(Pid),
-    torrent_gen:stop(Pid2),
-    erlang:display(Ret),
-    ?assert(true).
-
--endif.
