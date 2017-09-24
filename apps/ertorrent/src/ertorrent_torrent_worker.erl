@@ -33,7 +33,7 @@
 -define(HASH_SRV, ertorrent_hash_srv).
 -define(METAINFO, ertorrent_metainfo).
 -define(SETTINGS_SRV, ertorrent_settings_srv).
--define(TRACKER, ertorrent_tracker_dispatcher).
+-define(TRACKER, ertorrent_tracker_http_dispatcher).
 -define(PEER_SRV, ertorrent_peer_srv).
 -define(UTILS, ertorrent_utils).
 
@@ -80,6 +80,7 @@
                 metainfo,
                 peers::list(),
                 peer_id::string(), % Our unique peer id e.g. ER-1-0-0-<sha1>
+                peer_listen_port::integer(),
                 pieces::list(), % Piece hashes from the metainfo
                 piece_layout::list(), % A translation between piece index and file offset, e.g. [{Piece_idx, File_path, File_offset, Length}]
                 peers_max::integer(), % The maximum amount of peers this torrent is allowed to have
@@ -132,6 +133,7 @@ tracker_announce_loop(State) ->
     {ok, _Request_id} = ?TRACKER:announce(State#state.announce,
                                           State#state.info_hash,
                                           State#state.peer_id,
+                                          State#state.peer_listen_port,
                                           State#state.uploaded,
                                           State#state.downloaded,
                                           State#state.left,
@@ -188,6 +190,7 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
     % URI encoded peer id
     {peer_id_uri, Peer_id_encoded} = ?SETTINGS_SRV:get_sync(peer_id_uri),
     {download_location, Location} = ?SETTINGS_SRV:get_sync(download_location),
+    {peer_listen_port, Peer_listen_port} = ?SETTINGS_SRV:get_sync(peer_listen_port),
 
     % TODO investigate support for allocate
     case Resolved_files of
@@ -214,13 +217,14 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
 
     % Calculate the piece layout over the file structure
     % TODO rename create_file_mapping
-    Piece_layout = ?UTILS:create_file_mapping(Resolved_files, Piece_length),
+    {ok, Piece_layout} = ?UTILS:create_file_mapping(Resolved_files, Piece_length),
 
     % THIS SHOULD BE THE END OF THE INITIALIZATION
     % hash_files is an async call and we should be ready to serve when we
     % receive its response.
     % TODO possible race condition?
-    ?HASH_SRV:hash_files(self(), File_paths, Piece_length),
+    %?HASH_SRV:hash_files(self(), File_paths, Piece_length),
+    ?HASH_SRV:hash_files(Piece_layout),
 
     State = #state{announce = Announce_address,
                    downloaded = 0,
@@ -232,6 +236,7 @@ init([Info_hash, Metainfo, Start_when_ready]) ->
                    length = Length,
                    metainfo = Metainfo,
                    peer_id = Peer_id_encoded,
+                   peer_listen_port = Peer_listen_port,
                    pieces = Pieces,
                    piece_layout = Piece_layout,
                    start_when_ready = Start_when_ready,
@@ -437,7 +442,7 @@ handle_info({torrent_s_hash_piece_resp, _Index, _Hash}, State) ->
 % hashing of previously downloaded files for the torrent. This is the last step
 % of initialization of a torrent worker.
 % @end
-handle_info({hash_s_hash_files_res, Hashes}, State) ->
+handle_info({hash_s_hash_files_res, {_Job_ID, Hashes}}, State) ->
     lager:warning("recv hash_s_hash_files_res", []),
 
     % Construct a list of the to list in the form [{X_hash, Y_hash}, {X_hash1,
@@ -464,11 +469,11 @@ handle_info({hash_s_hash_files_res, Hashes}, State) ->
     Bitfield = ?BINARY:list_to_bitfield(Bitfield_list_ordered),
 
     case State#state.start_when_ready of
-        active ->
+        true ->
             Tmp_state = State#state{bitfield = Bitfield},
             New_state = start_torrent(Tmp_state),
             {noreply, New_state};
-        inactive->
+        false ->
             New_state = State#state{bitfield = Bitfield,
                                     state = inactive},
             {noreply, New_state, hibernate}

@@ -9,10 +9,6 @@
 
 -behaviour(gen_server).
 
--include("ertorrent_log.hrl").
-
--define(TRACKER_REQUEST, ertorrent_tracker_request).
-
 -export([announce/9,
          start_link/0]).
 
@@ -22,6 +18,11 @@
          handle_info/2,
          terminate/2,
          code_change/3]).
+
+-include("ertorrent_log.hrl").
+
+-define(TRACKER_REQUEST, ertorrent_tracker_request).
+-define(BENCODE, ertorrent_bencode).
 
 % mapping, maps HTTP request ID with dispatch request.
 -record(state, {requests::list()}).
@@ -74,7 +75,7 @@ handle_info({http, {Request_id, Response}}, State) ->
             Requests = lists:delete({Request_id, From}, State#state.requests),
 
             % Decode and send response to the torrent process
-            Decoded_response = bencode:decode(Response),
+            {ok, Decoded_response} = ?BENCODE:decode(Response),
             From ! {tracker_http_dispatcher_res, Decoded_response},
 
             New_state = State#state{requests=Requests};
