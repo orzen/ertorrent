@@ -8,7 +8,8 @@
          terminate/2,
          handle_call/3,
          handle_cast/2,
-         handle_info/2]).
+         handle_info/2,
+         code_change/3]).
 
 -record(state, {accept_sockets::list(),
                 accept_socket_timers::list(),
@@ -109,3 +110,6 @@ handle_info({peer_timed_out, Socket}, State) ->
     New_accept_sockets = lists:delete(Socket, State#state.accept_sockets),
 
     {noreply, State#state{accept_sockets = New_accept_sockets}}.
+
+code_change(_OldVsn, _State, _Extra) ->
+    {ok}.

@@ -17,7 +17,8 @@
          start/1,
          start_link/2,
          start_torrent/1,
-         stop/1]).
+         stop/1,
+         code_change/3]).
 
 -export([init/1,
          handle_call/3,
@@ -479,3 +480,5 @@ handle_info({hash_s_hash_files_res, {_Job_ID, Hashes}}, State) ->
             {noreply, New_state, hibernate}
     end.
 
+code_change(_OldVsn, _State, _Extra) ->
+    {ok}.

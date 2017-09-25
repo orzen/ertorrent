@@ -23,7 +23,8 @@
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         terminate/2]).
+         terminate/2,
+         code_change/3]).
 
 -include("ertorrent_log.hrl").
 -include("ertorrent_peer_tcp_message_ids.hrl").
@@ -462,3 +463,6 @@ handle_info({tcp_closed, _S}, State) ->
 handle_info(Message, State) ->
     ?WARNING("peer[" ++ State#state.id ++ "] an invalid request: " ++ Message),
     {stop, peer_unhandled_message, State}.
+
+code_change(_OldVsn, _State, _Extra) ->
+    {ok}.

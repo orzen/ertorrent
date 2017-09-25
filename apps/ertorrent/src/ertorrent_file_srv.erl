@@ -10,7 +10,8 @@
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         terminate/2]).
+         terminate/2,
+         code_change/3]).
 
 -record(state, {disks::list(),
                 workers::list()}).
@@ -61,3 +62,6 @@ handle_cast({pread, From, Info_hash, File, Offset}, State) ->
 
 handle_info({file_w_pread_resp, _From, _File, _Offset, _Data}, State) ->
     {noreply, State}.
+
+code_change(_OldVsn, _State, _Extra) ->
+    {ok}.
