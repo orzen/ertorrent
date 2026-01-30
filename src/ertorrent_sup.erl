@@ -35,6 +35,7 @@ init(_Arg) ->
     Supervisor_specs = [?SUPERVISOR(X) || X <- Supervisors],
 
     Servers = [
+               ertorrent_settings_srv,
                ertorrent_tracker_srv,
                ertorrent_torrent_worker2
               ],

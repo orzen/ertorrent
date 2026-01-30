@@ -1,0 +1,1731 @@
+2019-06-29 12:03:13 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',{reply,<0.427.0>,#Fun<ertorrent_torrent_worker2.0.105602152>},<0.426.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.51>,6969},inet,120000,<0.426.0>,#{<<121,175,93,21>> => {transaction,undefined,<<121,175,93,21>>,<<0,0,4,23,39,16,25,128,0,0,0,0,121,175,93,21>>,1,#Ref<0.3240878036.893911041.158547>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.426.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-06-29 12:03:13 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.430.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.426.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>,#Port<0.51>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 1489
+  neighbours:
+2019-06-29 12:03:13 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.426.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.430.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-29 12:03:13 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.433.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1516
+  neighbours:
+2019-06-29 12:03:13 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.430.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-29 12:03:13 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.434.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1519
+  neighbours:
+2019-06-29 12:03:13 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-29 12:03:13 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.435.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1495
+  neighbours:
+2019-06-29 12:03:13 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-29 12:03:13 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-29 12:03:13 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.428.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-06-30 12:43:40 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',{reply,<0.375.0>,#Fun<ertorrent_torrent_worker2.0.105602152>},<0.374.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.54>,6969},inet,120000,<0.374.0>,#{<<124,56,144,134>> => {transaction,undefined,<<124,56,144,134>>,<<0,0,4,23,39,16,25,128,0,0,0,0,124,56,144,134>>,1,#Ref<0.1158604248.49283073.93768>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.374.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-06-30 12:43:40 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.378.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.374.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>,#Port<0.54>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 1492
+  neighbours:
+2019-06-30 12:43:40 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.374.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.378.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 12:43:40 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.381.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1521
+  neighbours:
+2019-06-30 12:43:40 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.378.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 12:43:40 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.382.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1521
+  neighbours:
+2019-06-30 12:43:40 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.378.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 12:43:40 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.383.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1521
+  neighbours:
+2019-06-30 12:43:40 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.378.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 12:43:40 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.378.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 12:43:40 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.376.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-06-30 13:20:39 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',{reply,<0.394.0>,#Fun<ertorrent_torrent_worker2.0.116958713>},<0.393.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.53>,6969},inet,120000,<0.393.0>,#{<<"P¡ê¼">> => {transaction,undefined,<<"P¡ê¼">>,<<0,0,4,23,39,16,25,128,0,0,0,0,80,161,234,188>>,1,#Ref<0.2630205228.2739142658.261095>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-06-30 13:20:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.397.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>,#Port<0.53>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 1492
+  neighbours:
+2019-06-30 13:20:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.397.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:20:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.400.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1528
+  neighbours:
+2019-06-30 13:20:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.397.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:20:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.401.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1525
+  neighbours:
+2019-06-30 13:20:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:20:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.402.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1501
+  neighbours:
+2019-06-30 13:20:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:20:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:20:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.395.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-06-30 13:22:55 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',#Fun<ertorrent_torrent_worker2.0.123970477>,<0.393.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.53>,6969},inet,120000,<0.393.0>,#{<<"Ö¿ïf">> => {transaction,undefined,<<"Ö¿ïf">>,<<0,0,4,23,39,16,25,128,0,0,0,0,214,191,239,102>>,1,#Ref<0.2634204665.592445441.247890>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-06-30 13:22:55 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.397.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>,#Port<0.53>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 1493
+  neighbours:
+2019-06-30 13:22:55 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.397.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:22:55 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.400.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1518
+  neighbours:
+2019-06-30 13:22:55 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.397.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:22:55 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.401.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1524
+  neighbours:
+2019-06-30 13:22:55 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:22:55 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.402.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1518
+  neighbours:
+2019-06-30 13:22:55 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:22:55 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-06-30 13:22:55 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.395.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-04 20:02:50 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',#Fun<ertorrent_torrent_worker2.0.123970477>,<0.374.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.54>,6969},inet,120000,<0.374.0>,#{<<"ëÖRD">> => {transaction,undefined,<<"ëÖRD">>,<<0,0,4,23,39,16,25,128,0,0,0,0,235,214,82,68>>,1,#Ref<0.3102016106.204996609.53046>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.374.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-04 20:02:50 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.378.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.374.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>,#Port<0.54>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 1485
+  neighbours:
+2019-07-04 20:02:50 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.374.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.378.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:02:50 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.381.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1493
+  neighbours:
+2019-07-04 20:02:50 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.378.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:02:50 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.382.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1514
+  neighbours:
+2019-07-04 20:02:50 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.378.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:02:50 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.383.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.376.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1493
+  neighbours:
+2019-07-04 20:02:50 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.378.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:02:50 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.378.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.374.0>,#Port<0.54>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:02:50 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.376.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-04 20:06:45 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',#Fun<ertorrent_torrent_worker2.0.132438781>,<0.393.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.53>,6969},inet,120000,<0.393.0>,#{<<146,117,247,31>> => {transaction,undefined,<<146,117,247,31>>,<<0,0,4,23,39,16,25,128,0,0,0,0,146,117,247,31>>,1,#Ref<0.3656354681.3426222082.145103>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-04 20:06:45 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.397.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>,#Port<0.53>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 1489
+  neighbours:
+2019-07-04 20:06:45 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.393.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.397.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:06:45 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.400.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1520
+  neighbours:
+2019-07-04 20:06:45 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.397.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:06:45 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.401.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1493
+  neighbours:
+2019-07-04 20:06:45 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:06:45 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.402.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.376.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.395.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1514
+  neighbours:
+2019-07-04 20:06:45 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:06:45 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.397.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.393.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 20:06:45 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.395.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-04 20:16:33 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',#Fun<dbg_ieval.33.103228614>,<0.397.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.55>,6969},inet,120000,<0.397.0>,#{<<23,112,88,219>> => {transaction,undefined,<<23,112,88,219>>,<<0,0,4,23,39,16,25,128,0,0,0,0,23,112,88,219>>,1,#Ref<0.3059594355.4232577025.76658>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.397.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"ertorrent_tracker_udp_worker.erl"},{line,340}]}]}
+2019-07-04 20:16:33 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.413.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.397.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"ertorrent_tracker_udp_worker.erl"},{line,340}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.287.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.406.0>,#Port<0.55>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 2586
+    stack_size: 27
+    reductions: 1694
+  neighbours:
+2019-07-04 20:16:33 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.397.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"ertorrent_tracker_udp_worker.erl"},{line,340}]}]}
+     Offender:   [{pid,<0.413.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.397.0>,#Port<0.55>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 21:43:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.421.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception exit: {{bad_return_value,{interpreter_terminated,shutdown}},[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,366}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.287.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.406.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 1598
+    stack_size: 27
+    reductions: 1706
+  neighbours:
+2019-07-04 21:43:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     {bad_return_value,{interpreter_terminated,shutdown}}
+     Offender:   [{pid,<0.413.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.397.0>,#Port<0.55>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 21:43:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.472.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.287.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.406.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1507
+  neighbours:
+2019-07-04 21:43:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.413.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.397.0>,#Port<0.55>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 21:43:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.473.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.287.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.406.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1516
+  neighbours:
+2019-07-04 21:43:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.413.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.397.0>,#Port<0.55>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 21:43:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.474.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.287.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.406.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1519
+  neighbours:
+2019-07-04 21:43:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.413.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.397.0>,#Port<0.55>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 21:43:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.413.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.397.0>,#Port<0.55>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-04 21:43:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.406.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-06 13:01:16 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',"udp://tracker.leechers-paradise.org:6969",<0.401.0>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.52>,6969},inet,120000,<0.401.0>,#{<<130,135,218,234>> => {transaction,undefined,<<130,135,218,234>>,<<0,0,4,23,39,16,25,128,0,0,0,0,130,135,218,234>>,1,#Ref<0.2044461066.1123024898.12775>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,<0.401.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-06 13:01:16 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.405.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,<0.401.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.384.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.403.0>,#Port<0.52>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1528
+  neighbours:
+2019-07-06 13:01:16 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,<0.401.0>},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,340}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.405.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.401.0>,#Port<0.52>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 13:01:16 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.408.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.384.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.403.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1518
+  neighbours:
+2019-07-06 13:01:16 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.405.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.401.0>,#Port<0.52>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 13:01:16 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.409.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.384.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.403.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1509
+  neighbours:
+2019-07-06 13:01:16 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.405.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.401.0>,#Port<0.52>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 13:01:16 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.410.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.384.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.403.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1521
+  neighbours:
+2019-07-06 13:01:16 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.405.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.401.0>,#Port<0.52>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 13:01:16 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.405.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.401.0>,#Port<0.52>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 13:01:16 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.403.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-06 23:28:42 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribe',<0.503.0>,{reply,<0.502.0>,#Fun<ertorrent_tracker_srv.0.8228533>}}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.46>,6969},inet,120000,<0.502.0>,#{<<82,17,74,155>> => {transaction,undefined,<<82,17,74,155>>,<<0,0,4,23,39,16,25,128,0,0,0,0,82,17,74,155>>,1,#Ref<0.701408627.415236098.40504>,undefined}},[],55544}
+** Reason for termination ==
+** {{badfun,{reply,<0.502.0>,#Fun<ertorrent_tracker_srv.0.8228533>}},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,341}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-06 23:28:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.506.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,{reply,<0.502.0>,#Fun<ertorrent_tracker_srv.0.8228533>}},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,341}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.485.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.504.0>,#Port<0.46>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 1479
+  neighbours:
+2019-07-06 23:28:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,{reply,<0.502.0>,#Fun<ertorrent_tracker_srv.0.8228533>}},[{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,341}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.506.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.502.0>,#Port<0.46>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:28:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.509.0>
+    registered_name: []
+    exception exit: {einval,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.485.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.504.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1913
+  neighbours:
+2019-07-06 23:28:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     einval
+     Offender:   [{pid,<0.506.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.502.0>,#Port<0.46>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:28:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.510.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.485.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.504.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1523
+  neighbours:
+2019-07-06 23:28:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.506.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.502.0>,#Port<0.46>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:28:42 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.511.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.485.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.504.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1520
+  neighbours:
+2019-07-06 23:28:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.506.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.502.0>,#Port<0.46>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:28:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.506.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.502.0>,#Port<0.46>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:28:42 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.504.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-06 23:30:08 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribed',<0.399.0>,undefined}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.53>,6969},inet,120000,<0.398.0>,#{<<211,155,253,161>> => {transaction,undefined,<<211,155,253,161>>,<<0,0,4,23,39,16,25,128,0,0,0,0,211,155,253,161>>,1,#Ref<0.2066389331.2561933313.236417>,undefined}},[{#Fun<ertorrent_tracker_udp_worker.5.35763719>,{<0.399.0>,120000,undefined}}],55544}
+** Reason for termination ==
+** unhandled_info
+2019-07-06 23:30:08 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.402.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception exit: {unhandled_info,[{gen_server,handle_common_reply,8,[{file,"gen_server.erl"},{line,751}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.381.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.400.0>,#Port<0.53>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 2252
+  neighbours:
+2019-07-06 23:30:08 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     unhandled_info
+     Offender:   [{pid,<0.402.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.398.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:30:08 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.405.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.381.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.400.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1514
+  neighbours:
+2019-07-06 23:30:08 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.402.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.398.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:30:08 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.406.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.381.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.400.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1490
+  neighbours:
+2019-07-06 23:30:08 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.402.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.398.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:30:08 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.407.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.381.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.400.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1514
+  neighbours:
+2019-07-06 23:30:08 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.402.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.398.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:30:08 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.402.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.398.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:30:08 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.400.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-06 23:40:51 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribed',<0.426.0>,undefined}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.51>,6969},inet,120000,<0.425.0>,#{<<240,124,59,135>> => {transaction,undefined,<<240,124,59,135>>,<<0,0,4,23,39,16,25,128,0,0,0,0,240,124,59,135>>,1,#Ref<0.1479353780.3368812545.200296>,undefined}},[{#Fun<ertorrent_tracker_udp_worker.5.35763719>,{<0.426.0>,120000,undefined}}],55544}
+** Reason for termination ==
+** unhandled_info
+2019-07-06 23:40:51 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.429.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception exit: {unhandled_info,[{gen_server,handle_common_reply,8,[{file,"gen_server.erl"},{line,751}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.408.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.427.0>,#Port<0.51>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 2251
+  neighbours:
+2019-07-06 23:40:51 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     unhandled_info
+     Offender:   [{pid,<0.429.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.425.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:40:51 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.432.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.408.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.427.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1522
+  neighbours:
+2019-07-06 23:40:51 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.429.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.425.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:40:51 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.433.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.408.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.427.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1516
+  neighbours:
+2019-07-06 23:40:51 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.429.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.425.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:40:51 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.434.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.408.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.427.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1516
+  neighbours:
+2019-07-06 23:40:51 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.429.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.425.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:40:51 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.429.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.425.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-06 23:40:51 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.427.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-06 23:47:01 =ERROR REPORT====
+** Generic server ertorrent_tracker_srv terminating 
+** Last message in was {'$gen_cast',{'tracker.srv.subscribe',"udp://tracker.leechers-paradise.org:6969",{reply,<0.427.0>,#Fun<ertorrent_torrent_worker2.0.124093376>}}}
+** When Server state == {state,#{}}
+** Reason for termination ==
+** {{badmatch,{reply,<0.426.0>,#Fun<ertorrent_tracker_srv.0.88723120>}},[{ertorrent_tracker_srv,handle_cast,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_srv.erl"},{line,55}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-06 23:47:01 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_srv:init/1
+    pid: <0.426.0>
+    registered_name: ertorrent_tracker_srv
+    exception error: {{badmatch,{reply,<0.426.0>,#Fun<ertorrent_tracker_srv.0.88723120>}},[{ertorrent_tracker_srv,handle_cast,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_srv.erl"},{line,55}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.423.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 2668
+  neighbours:
+2019-07-06 23:47:01 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     {{badmatch,{reply,<0.426.0>,#Fun<ertorrent_tracker_srv.0.88723120>}},[{ertorrent_tracker_srv,handle_cast,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_srv.erl"},{line,55}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.426.0>},{id,ertorrent_tracker_srv},{mfargs,{ertorrent_tracker_srv,start_link,[]}},{restart_type,transient},{shutdown,infinity},{child_type,worker}]
+
+2019-07-07 21:59:48 =ERROR REPORT====
+** Generic server ertorrent_tracker_srv terminating 
+** Last message in was {'$gen_cast',{'tracker.srv.subscribe',"udp://tracker.leechers-paradise.org:6969",{reply,<0.375.0>,#Fun<ertorrent_torrent_worker2.0.124093376>}}}
+** When Server state == {state,#{}}
+** Reason for termination ==
+** {{badmatch,{reply,<0.374.0>,#Fun<ertorrent_tracker_srv.0.88723120>}},[{ertorrent_tracker_srv,handle_cast,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_srv.erl"},{line,55}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-07 21:59:48 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_srv:init/1
+    pid: <0.374.0>
+    registered_name: ertorrent_tracker_srv
+    exception error: {{badmatch,{reply,<0.374.0>,#Fun<ertorrent_tracker_srv.0.88723120>}},[{ertorrent_tracker_srv,handle_cast,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_srv.erl"},{line,55}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_sup,<0.357.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.371.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 2671
+  neighbours:
+2019-07-07 21:59:48 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     {{badmatch,{reply,<0.374.0>,#Fun<ertorrent_tracker_srv.0.88723120>}},[{ertorrent_tracker_srv,handle_cast,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_srv.erl"},{line,55}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.374.0>},{id,ertorrent_tracker_srv},{mfargs,{ertorrent_tracker_srv,start_link,[]}},{restart_type,transient},{shutdown,infinity},{child_type,worker}]
+
+2019-07-07 22:01:38 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribed',<0.385.0>,undefined}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.53>,6969},inet,120000,<0.384.0>,#{<<232,42,144,40>> => {transaction,undefined,<<232,42,144,40>>,<<0,0,4,23,39,16,25,128,0,0,0,0,232,42,144,40>>,1,#Ref<0.1717824659.3040083970.252468>,undefined}},[{#Fun<ertorrent_tracker_udp_worker.5.35763719>,{<0.385.0>,120000,undefined}}],55544}
+** Reason for termination ==
+** unhandled_info
+2019-07-07 22:01:38 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.388.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception exit: {unhandled_info,[{gen_server,handle_common_reply,8,[{file,"gen_server.erl"},{line,751}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>,#Port<0.53>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 610
+    stack_size: 27
+    reductions: 2244
+  neighbours:
+2019-07-07 22:01:38 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     unhandled_info
+     Offender:   [{pid,<0.388.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:01:38 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.391.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1505
+  neighbours:
+2019-07-07 22:01:38 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.388.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:01:38 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.392.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1493
+  neighbours:
+2019-07-07 22:01:38 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.388.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:01:38 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.393.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1514
+  neighbours:
+2019-07-07 22:01:38 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.388.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:01:38 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.388.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:01:38 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.386.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-07 22:13:34 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {'tracker.worker.subscribed',<0.427.0>,'udp://tracker.leechers-paradise.org:6969'}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',undefined,{dest,"tracker.leechers-paradise.org",undefined,#Port<0.51>,6969},inet,120000,<0.426.0>,#{<<254,9,15,88>> => {transaction,undefined,<<254,9,15,88>>,<<0,0,4,23,39,16,25,128,0,0,0,0,254,9,15,88>>,1,#Ref<0.3869970431.2236612611.165074>,undefined}},[{#Fun<ertorrent_tracker_udp_worker.5.43447541>,{<0.427.0>,120000,undefined}}],55544}
+** Reason for termination ==
+** unhandled_info
+2019-07-07 22:13:34 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.430.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception exit: {unhandled_info,[{gen_server,handle_common_reply,8,[{file,"gen_server.erl"},{line,751}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>,#Port<0.51>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 1598
+    stack_size: 27
+    reductions: 2445
+  neighbours:
+2019-07-07 22:13:34 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     unhandled_info
+     Offender:   [{pid,<0.430.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:13:34 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.433.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1492
+  neighbours:
+2019-07-07 22:13:34 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.430.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:13:34 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.434.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1519
+  neighbours:
+2019-07-07 22:13:34 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:13:34 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.435.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1519
+  neighbours:
+2019-07-07 22:13:34 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:13:34 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:13:34 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.428.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-07 22:14:17 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {udp,#Port<0.53>,{188,241,58,209},6969,<<0,0,0,1,136,119,253,78,0,0,7,15,0,0,0,0,0,0,0,0>>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',#{<0.385.0> => #Ref<0.3790239334.626524161.138652>},{dest,"tracker.leechers-paradise.org",<<222,250,203,195,220,234,66,25>>,#Port<0.53>,6969},inet,120000,<0.384.0>,#{<<136,119,253,78>> => {transaction,foo,<<136,119,253,78>>,<<222,250,203,195,220,234,66,25,0,0,0,1,136,119,253,78,53,53,99,51,55,51,55,50,54,55,97,99,57,50,48,101,100,49,56,101,69,84,48,48,49,45,190,115,72,183,79,183,27,19,204,98,157,244,16,201,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,255,255,255,255,138,72>>,1,#Ref<0.3790239334.626524162.133191>,undefined}},[{#Fun<ertorrent_tracker_udp_worker.5.43447541>,{<0.385.0>,120000,undefined}}],55544}
+** Reason for termination ==
+** {{badfun,foo},[{ertorrent_tracker_udp_worker,transaction_reply,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,239}]},{ertorrent_tracker_udp_worker,handle_transaction,3,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,248}]},{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,265}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-07 22:14:17 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.388.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,foo},[{ertorrent_tracker_udp_worker,transaction_reply,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,239}]},{ertorrent_tracker_udp_worker,handle_transaction,3,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,248}]},{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,265}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>,#Port<0.53>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 1598
+    stack_size: 27
+    reductions: 2654
+  neighbours:
+2019-07-07 22:14:17 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,foo},[{ertorrent_tracker_udp_worker,transaction_reply,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,239}]},{ertorrent_tracker_udp_worker,handle_transaction,3,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,248}]},{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,265}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.388.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:14:17 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.391.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1499
+  neighbours:
+2019-07-07 22:14:17 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.388.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:14:17 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.392.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1520
+  neighbours:
+2019-07-07 22:14:17 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.388.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:14:17 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.393.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.367.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.386.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1520
+  neighbours:
+2019-07-07 22:14:17 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.388.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:14:17 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.388.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.384.0>,#Port<0.53>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:14:17 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.386.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+
+2019-07-07 22:15:39 =ERROR REPORT====
+** Generic server 'udp://tracker.leechers-paradise.org:6969' terminating 
+** Last message in was {udp,#Port<0.51>,{188,241,58,209},6969,<<0,0,0,1,32,57,46,244,0,0,7,160,0,0,0,0,0,0,0,0>>}
+** When Server state == {state,'udp://tracker.leechers-paradise.org:6969',#{<0.427.0> => #Ref<0.552095689.1163919361.26702>},{dest,"tracker.leechers-paradise.org",<<222,250,203,195,220,234,66,25>>,#Port<0.51>,6969},inet,120000,<0.426.0>,#{<<" 9.ô">> => {transaction,foo,<<" 9.ô">>,<<222,250,203,195,220,234,66,25,0,0,0,1,32,57,46,244,53,53,99,51,55,51,55,50,54,55,97,99,57,50,48,101,100,49,56,101,69,84,48,48,49,45,168,254,208,147,191,165,29,66,111,161,66,203,197,197,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,255,255,255,255,138,72>>,1,#Ref<0.552095689.1163919361.26704>,undefined}},[{#Fun<ertorrent_tracker_udp_worker.5.67206952>,{<0.427.0>,120000,undefined}}],55544}
+** Reason for termination ==
+** {{badfun,foo},[{ertorrent_tracker_udp_worker,transaction_reply,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,239}]},{ertorrent_tracker_udp_worker,handle_transaction,3,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,248}]},{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,265}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+2019-07-07 22:15:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.430.0>
+    registered_name: 'udp://tracker.leechers-paradise.org:6969'
+    exception error: {{badfun,foo},[{ertorrent_tracker_udp_worker,transaction_reply,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,239}]},{ertorrent_tracker_udp_worker,handle_transaction,3,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,248}]},{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,265}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>,#Port<0.51>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 1598
+    stack_size: 27
+    reductions: 2659
+  neighbours:
+2019-07-07 22:15:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    child_terminated
+     Reason:     {{badfun,foo},[{ertorrent_tracker_udp_worker,transaction_reply,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,239}]},{ertorrent_tracker_udp_worker,handle_transaction,3,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,248}]},{ertorrent_tracker_udp_worker,handle_info,2,[{file,"/home/orz/code/ertorrent/src/ertorrent_tracker_udp_worker.erl"},{line,265}]},{gen_server,try_dispatch,4,[{file,"gen_server.erl"},{line,637}]},{gen_server,handle_msg,6,[{file,"gen_server.erl"},{line,711}]},{proc_lib,wake_up,3,[{file,"proc_lib.erl"},{line,259}]}]}
+     Offender:   [{pid,<0.430.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:15:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.433.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1495
+  neighbours:
+2019-07-07 22:15:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,<0.430.0>},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:15:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.434.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 987
+    stack_size: 27
+    reductions: 1519
+  neighbours:
+2019-07-07 22:15:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:15:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    start_error
+     Reason:     closed
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:15:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_tracker_sup}
+     Context:    shutdown
+     Reason:     reached_max_restart_intensity
+     Offender:   [{pid,{restarting,<0.430.0>}},{id,ertorrent_tracker_udp_worker},{mfargs,{ertorrent_tracker_udp_worker,start_link,[{'tracker.udp.args','udp://tracker.leechers-paradise.org:6969',<0.426.0>,#Port<0.51>,"tracker.leechers-paradise.org",55544,6969,inet}]}},{restart_type,transient},{shutdown,60000},{child_type,worker}]
+
+2019-07-07 22:15:39 =CRASH REPORT====
+  crasher:
+    initial call: ertorrent_tracker_udp_worker:init/1
+    pid: <0.435.0>
+    registered_name: []
+    exception exit: {closed,[{gen_server,init_it,6,[{file,"gen_server.erl"},{line,358}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,249}]}]}
+    ancestors: [ertorrent_tracker_sup,ertorrent_sup,<0.409.0>]
+    message_queue_len: 0
+    messages: []
+    links: [<0.428.0>]
+    dictionary: []
+    trap_exit: false
+    status: running
+    heap_size: 376
+    stack_size: 27
+    reductions: 1492
+  neighbours:
+2019-07-07 22:15:39 =SUPERVISOR REPORT====
+     Supervisor: {local,ertorrent_sup}
+     Context:    child_terminated
+     Reason:     shutdown
+     Offender:   [{pid,<0.428.0>},{id,ertorrent_tracker_sup},{mfargs,{ertorrent_tracker_sup,start_link,[]}},{restart_type,permanent},{shutdown,infinity},{child_type,supervisor}]
+

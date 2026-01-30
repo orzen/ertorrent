@@ -25,6 +25,7 @@
         ]).
 
 -record(state, {
+          id :: atom(),
           conn_pid,
           clients :: map(),
           host,
@@ -59,8 +60,8 @@ disconnect(Worker_ref, Client) ->
 scrape(_Args) ->
     ok.
 
-start_link(Args = #'tracker.http.args'{}) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Args], []).
+start_link(Args = #'tracker.http.args'{id = ID}) ->
+    gen_server:start_link({local, ID}, ?MODULE, [Args], []).
 
 stop(Worker_ref) ->
     gen_server:stop(Worker_ref).
@@ -77,7 +78,7 @@ stop(Worker_ref) ->
 %     {noreply, State#state{transactions=Trans2}, hibernate}.
 
 request_data1(Client) ->
-    Client ! #'tracker.worker.data_request'{ tracker_pid = self() },
+    Client ! #'tracker.worker.announce'{ tracker_worker_pid = self() },
     Timer = erlang:send_after(?ANNOUNCE_INTERVAL,
                               self(),
                               #'tracker.worker.announce_expired'{ client_pid = Client }),
@@ -96,6 +97,7 @@ announce(Conn_pid, Data = #'tracker.http.announce'{}) ->
 % Behaviour callbacks
 
 init([#'tracker.http.args'{
+                           id = ID,
                            host = Host,
                            port = Port,
                            tracker_srv = Tracker_srv,
@@ -109,6 +111,7 @@ init([#'tracker.http.args'{
     end,
 
     State = #state{
+               id = ID,
                conn_pid = Conn_pid,
                host = Host,
                port = Port,
@@ -125,8 +128,22 @@ handle_call(Request, From, State) ->
     lager:error("Unhandled call from '~w' '~w'", [From, Request]),
     {stop, "Unhandled call", State}.
 
-handle_cast(#'tracker.worker.client_data'{client_pid = Client, data = Data},
+handle_cast(#'tracker.worker.announce_data'{client_pid = Client,
+                                            info_hash = Info_hash,
+                                            peer_id = Peer_id,
+                                            downloaded = Downloaded,
+                                            left = Left,
+                                            uploaded = Uploaded,
+                                            event = Event},
             State = #state{conn_pid = Conn_pid, transactions = Transactions}) ->
+    Port = ?SETTINGS_SRV:get_conf(peer_listen_port),
+    Data = #'tracker.http.announce'{info_hash = Info_hash,
+                                    peer_id = Peer_id,
+                                    port = Port,
+                                    downloaded = Downloaded,
+                                    left = Left,
+                                    uploaded = Uploaded,
+                                    event = Event},
     Transaction = announce(Conn_pid, Data),
     Transaction2 = Transaction#transaction{client_pid = Client},
 

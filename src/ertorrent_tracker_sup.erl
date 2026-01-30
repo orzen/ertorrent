@@ -16,9 +16,9 @@
 
 -define(SERVER, {local, ?MODULE}).
 
--define(HTTP_WORKER(ID, Args),
+-define(HTTP_WORKER(Args),
     #{
-      id => ID,
+      id => ertorrent_tracker_http_worker,
       start => {ertorrent_tracker_http_worker, start_link, [Args]},
       restart => transient,
       shutdown => 60*1000,
@@ -26,9 +26,9 @@
       modules => [ertorrent_tracker_http_worker]
      }).
 
--define(UDP_WORKER(ID, Args),
+-define(UDP_WORKER(Args),
     #{
-      id => ID,
+      id => ertorrent_tracker_udp_worker,
       start => {ertorrent_tracker_udp_worker, start_link, [Args]},
       restart => transient,
       shutdown => 60*1000,
@@ -62,35 +62,34 @@ start_child(#tracker{id = ID, proto = udp, host = Host, port = Port}) ->
     Src_port = 55544,
     {ok, Socket} = open_udp_socket(Src_port),
 
-    Args = #'tracker.udp.args'{host = Host,
+    Args = #'tracker.udp.args'{id = ID,
+                               host = Host,
                                dst_port = Port,
                                inet_version = inet,
                                socket = Socket,
                                src_port = Src_port,
                                tracker_srv = self()},
-    {ok, Pid} = supervisor:start_child(?MODULE, ?UDP_WORKER(ID, Args)),
+    {ok, Pid} = supervisor:start_child(?MODULE, ?UDP_WORKER(Args)),
 
     ok = transfer_udp_ownership(Socket, Pid),
 
     {ok, Pid};
 start_child(#tracker{id = ID, proto = http, host = Host, port = Port}) ->
     lager:debug("~p: ~p", [?MODULE, ?FUNCTION_NAME]),
-    Args = #'tracker.http.args'{
+    Args = #'tracker.http.args'{id = ID,
                                 host = Host,
                                 port = Port,
                                 tracker_srv = self(),
-                                tls = false
-                               },
-    supervisor:start_child(?SERVER, ?HTTP_WORKER(ID, Args));
+                                tls = false},
+    supervisor:start_child(?SERVER, ?HTTP_WORKER(Args));
 start_child(#tracker{id = ID, proto = https, host = Host, port = Port}) ->
     lager:debug("~p: ~p", [?MODULE, ?FUNCTION_NAME]),
-    Args = #'tracker.http.args'{
+    Args = #'tracker.http.args'{id = ID,
                                 host = Host,
                                 port = Port,
                                 tracker_srv = self(),
-                                tls = true
-                               },
-    supervisor:start_child(?SERVER, ?HTTP_WORKER(ID, Args)).
+                                tls = true},
+    supervisor:start_child(?SERVER, ?HTTP_WORKER(Args)).
 
 terminate_child(#tracker{id = ID}) ->
     case supervisor:terminate_child(?SERVER, ID) of
@@ -106,7 +105,7 @@ start_link() ->
 
 init(_Arg) ->
     lager:info("~s(~w): started", [?MODULE, self()]),
-    SupFlags = {one_for_one, 1, 1},
+    SupFlags = {one_for_one, 3, 5000},
 
     %HTTP_worker_spec = #{
     %  id => ertorrent_tracker_http_worker,

@@ -1,0 +1,42 @@
+sequenceDiagram
+
+  activate torrent_worker
+  activate tracker_srv
+  activate tracker_sup
+  activate tracker_http_worker
+  activate tracker_udp_worker
+
+  torrent_worker->>tracker_srv: connect(torrent_worker_pid, tracker_URI, info_hash)
+
+  alt URI scheme is HTTP/HTTPS
+    tracker_srv->>tracker_srv: check if worker exists
+
+    alt tracker_http_worker exists
+      tracker_srv->>tracker_http_worker: connect(torrent_worker_pid, info_hash)
+    else tracker_http_worker does not exist
+      tracker_srv->>tracker_sup: start_child(tracker_URL)
+      tracker_sup->>tracker_http_worker1: start_link(tracker_URL)
+      activate tracker_http_worker1
+      tracker_http_worker1-->>tracker_sup: {ok, tracker_http_worker_pid}
+      tracker_sup-->>tracker_srv: {ok, tracker_http_worker_pid}
+      tracker_srv->>tracker_http_worker1: connect(torrent_worker_pid, info_hash)
+      tracker_http_worker1-->>tracker_srv: ok
+      tracker_srv-->>torrent_worker: ok
+    end
+  else URI scheme is UDP
+    tracker_srv->>tracker_sup: start_child(tracker_URI, info_hash)
+    tracker_sup->>tracker_udp_worker: start_link(tracker_URI, info_hash)
+    activate tracker_udp_worker
+    tracker_udp_worker-->>tracker_sup: {ok, tracker_udp_worker_pid}
+    tracker_sup-->>tracker_srv: {ok, tracker_udp_worker_pid}
+    tracker_srv->>tracker_udp_worker: connect(torrent_worker_pid)
+    tracker_udp_worker-->>tracker_srv: ok
+    tracker_srv-->>torrent_worker: ok
+  end
+
+  deactivate torrent_worker
+  deactivate tracker_srv
+  deactivate tracker_sup
+  deactivate tracker_http_worker
+  deactivate tracker_http_worker1
+  deactivate tracker_udp_worker

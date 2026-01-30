@@ -47,10 +47,9 @@ start(_StartType, _StartArgs) ->
     %ertorrent_sup:start_link_three().
 
     % Start up the servers
-    {ok, Pid} = ertorrent_sup:start_link(),
+    ertorrent_sup:start_link(),
 
-    % This also comes from the Cowboy tutorial
-    {ok, Pid}.
+    {ok, self()}.
 
 -spec stop(_) -> ok.
 stop(_State) ->

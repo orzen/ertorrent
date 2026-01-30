@@ -13,7 +13,8 @@
          parse_res/2,
          parse_req/1,
          error_res/1,
-         timeout/2
+         timeout/2,
+         gen_transaction_id/0
         ]).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -81,9 +82,9 @@
                       Transaction_id:32/bitstring,
                       Scrape_data/binary>>).
 
--define(ERROR_RES, <<3:32/integer, % 3
-                     Transaction_id:32/bitstring,
-                     Message/binary>>).
+-define(ERROR, <<3:32/integer, % 3
+                 Transaction_id:32/bitstring,
+                 Message/binary>>).
 
 parse_info_hashes(Info_hashes) when is_binary(Info_hashes) ->
     {ok, [ Info_hash || <<Info_hash:160/bitstring>> <= Info_hashes]}.
@@ -176,9 +177,9 @@ scrape_res(#'tracker.udp.msg.scrape_res'{transaction_id = Transaction_id,
     Scrape_data = iolist_to_binary(Stats_io),
     {ok, ?SCRAPE_RES}.
 
-error_res(#'tracker.udp.msg.error_res'{transaction_id = Transaction_id,
-                                       message = Message}) ->
-    {ok, ?ERROR_RES}.
+error_res(#'tracker.udp.msg.error'{transaction_id = Transaction_id,
+                                   message = Message}) ->
+    {ok, ?ERROR}.
 
 parse_res(?ANNOUNCE_RES, inet) ->
     {ok, IPv4_peers} = ?BINARY:parse_peers4(Peers),
@@ -203,9 +204,9 @@ parse_res(?SCRAPE_RES, _IP_fam) ->
     {ok, Scrape_data_list} = parse_scrape_data(Scrape_data),
     {ok, #'tracker.udp.msg.scrape_res'{transaction_id = Transaction_id,
                                        data = Scrape_data_list}};
-parse_res(?ERROR_RES, _IP_fam) ->
-    {ok, #'tracker.udp.msg.error_res'{transaction_id = Transaction_id,
-                                      message = Message}};
+parse_res(?ERROR, _IP_fam) ->
+    {ok, #'tracker.udp.msg.error'{transaction_id = Transaction_id,
+                                  message = Message}};
 parse_res(Bad_res, _IP_fam) ->
     {error, Bad_res}.
 
@@ -241,7 +242,7 @@ parse_req(?CONNECT_REQ) ->
                                         transaction_id = Transaction_id}}.
 
 timeout(Transaction_id, Attempts) ->
-    Seconds = trunc(15 * math:pow(2, Attempts)),
+    Seconds = trunc(15 * math:pow(2, Attempts)) * 1000,
     erlang:send_after(Seconds,
                       self(),
                       #'tracker.udp.transaction_expired'{transaction_id = Transaction_id}).
@@ -353,9 +354,9 @@ scrape_res_test() ->
     {ok, Res} = parse_res(Msg, ipv4_or_ipv6),
     ?assertEqual(Args, Res).
 
-error_res_test() ->
-    Args = #'tracker.udp.msg.error_res'{transaction_id = ?TEST_TRAN_ID,
-                                        message = <<"Houston we got a problem">>},
+error_test() ->
+    Args = #'tracker.udp.msg.error'{transaction_id = ?TEST_TRAN_ID,
+                                    message = <<"Houston we got a problem">>},
     {ok, Msg} = error_res(Args),
     {ok, Res} = parse_res(Msg, ipv4_or_ipv6),
     ?assertEqual(Args, Res).
